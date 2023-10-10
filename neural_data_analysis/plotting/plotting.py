@@ -1,13 +1,24 @@
 import base64
 import io
+import os
 from pathlib import Path
 from typing import Dict, List
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from bokeh.io import output_file
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.palettes import Category10
+from bokeh.plotting import figure, save, show
+from bokeh.transform import factor_cmap
 from PIL import Image
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 
 
-def plot_scatter_with_images(
+def scatter_with_images(
     data_points: np.ndarray,
     images: List[Image],
     descriptors: Dict = None,
@@ -41,11 +52,6 @@ def plot_scatter_with_images(
     Note:
         Displays the plot or saves the plot to HTML file.
     """
-    from bokeh.plotting import figure, show, save
-    from bokeh.models import ColumnDataSource, HoverTool
-    from bokeh.io import output_file
-    from bokeh.transform import factor_cmap
-    from bokeh.palettes import Category10
 
     # Convert the PIL images to base64-encoded strings
     images_base64 = []
@@ -72,7 +78,7 @@ def plot_scatter_with_images(
         for (key, value) in source_dict.items()
         if key not in ["x", "y", "thumbnail"]
     ]
-    TOOLTIPS = [
+    tooltips = [
         ("index", "$index"),
         ("(x,y)", "($x, $y)"),
     ] + descriptors_tooltips
@@ -86,7 +92,7 @@ def plot_scatter_with_images(
         x_axis_label="Dimension 1",
         y_axis_label="Dimension 2",
         tools="hover, pan, wheel_zoom, zoom_in, zoom_out, box_zoom, reset, save",
-        tooltips=TOOLTIPS,
+        tooltips=tooltips,
         width=1000,
         height=1000,
     )
@@ -126,4 +132,134 @@ def plot_scatter_with_images(
     if show_plot:
         show(plot)
     else:
+        print(f"Saving plot to {save_dir}/{filename}")
         save(plot)
+        print("Done.")
+
+
+def variance_explained(data_points, plot_name=None, save_plot=False):
+    """
+    Plots the variance explain per principal component
+    and a cumulative variance explained per principal component
+
+    Args:
+        data_points (array): high-dimensional points (n_samples, n_features)
+        plot_name (string): name to save the plots
+        save_plot (bool): whether to save the plot
+
+    Returns:
+        variance_df (pd.DataFrame): DataFrame containing the variance explained per PC
+
+    Example:
+        video_data_loader = VideoDataLoader(cfg, device)
+        plot_variance_explained(video_data_loader.frame_embeddings)
+    """
+
+    pca = PCA()
+    pca.fit(data_points)
+    explained_var = pca.explained_variance_ratio_
+    cumulative_var = np.cumsum(pca.explained_variance_ratio_)
+
+    variance_dict = {
+        "PC": np.arange(pca.n_components_) + 1,
+        "variance_explained": explained_var,
+        "cumulative_variance": cumulative_var,
+    }
+    variance_df = pd.DataFrame(variance_dict)
+
+    n_components_50 = np.argmax(cumulative_var >= 0.5)
+    n_components_90 = np.argmax(cumulative_var >= 0.90)
+
+    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+    sns.lineplot(x="PC", y="variance_explained", data=variance_df, ax=axes[0, 0])
+    sns.lineplot(
+        x="PC",
+        y="cumulative_variance",
+        data=variance_df,
+        ax=axes[1, 0],
+    )
+    sns.lineplot(
+        x="PC",
+        y="variance_explained",
+        data=variance_df,
+        ax=axes[0, 1],
+    )
+    sns.lineplot(
+        x="PC",
+        y="cumulative_variance",
+        data=variance_df,
+        ax=axes[1, 1],
+    )
+    axes[0, 1].set(xscale="log", yscale="log")
+    axes[1, 1].set(xscale="log", yscale="log")
+
+    for i, ax in enumerate(fig.axes):
+        ax.axvline(
+            x=n_components_50,
+            color="purple",
+            linestyle="--",
+            label="50% variance explained",
+        )
+        ax.axvline(
+            x=n_components_90,
+            color="green",
+            linestyle="--",
+            label="90% variance explained",
+        )
+        ax.legend()
+        ax.set_xlabel("Principal Component", fontsize=16)
+        ax.xaxis.set_tick_params(labelsize=14)
+        ax.yaxis.set_tick_params(labelsize=14)
+
+    axes[0, 0].set_ylabel("Variance Explained", fontsize=16)
+    axes[1, 0].set_ylabel("Cumulative Variance Explained", fontsize=16)
+    axes[0, 1].set_ylabel("Variance Explained", fontsize=16)
+    axes[1, 1].set_ylabel("Cumulative Variance Explained", fontsize=16)
+
+    plt.suptitle(f"PCA Explained Variance \n{plot_name}", fontsize=20)
+    plt.tight_layout()
+
+    if save_plot:
+        save_dir = "../plots/PCA_variance_explained"
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        plt.savefig(
+            f"{save_dir}/{plot_name}_PC_variance_explained.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+    else:
+        # plt.show()
+        pass
+
+    # print(f"Number of components for 99% variance: {pca.n_components_}")
+    # print(f"Variance explained by 3 PCs: {sum(pca.explained_variance_ratio_[0:3])}")
+    # print(f"Variance explained by 50 PCs: {sum(pca.explained_variance_ratio_[0:50])}")
+
+    return variance_df
+
+
+def plot_ecdf(data):
+    plt.figure()
+    if data.ndim == 1:
+        _ = sns.ecdfplot(data)
+        plt.show()
+    elif data.ndim == 2:
+        for i in range(data.shape[1]):
+            _ = sns.ecdfplot(data[:, i], label=f"feature_{i+1}")
+        plt.show()
+
+
+def elbow_curve(data, max_k=10, plot=True, seed=42):
+    inertia = []
+    for k in np.arange(max_k):
+        kmeans = KMeans(n_clusters=k, random_state=seed).fit(data)
+        inertia.append(kmeans.inertia_)
+    if plot:
+        plt.figure()
+        plt.plot(np.arange(max_k), inertia, marker="o")
+        plt.xlabel("Number of clusters")
+        plt.ylabel("Inertia")
+        plt.show()
+    return inertia
