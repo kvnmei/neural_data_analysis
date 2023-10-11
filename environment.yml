@@ -1,0 +1,12 @@
+name: nda
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - bokeh
+  - black
+  - matplotlib
+  - scikit-learn
+  - seaborn
+  - pandas
