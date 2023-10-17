@@ -2,7 +2,6 @@ import base64
 import io
 import os
 from pathlib import Path
-from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 from bokeh.io import output_file
 from bokeh.models import ColumnDataSource, HoverTool
-from bokeh.palettes import Category10
+from bokeh.palettes import Category20
 from bokeh.plotting import figure, save, show
 from bokeh.transform import factor_cmap
 from PIL import Image
@@ -20,12 +19,12 @@ from sklearn.decomposition import PCA
 
 def scatter_with_images(
     data_points: np.ndarray,
-    images: List[Image],
-    descriptors: Dict = None,
+    images: list[Image],
+    descriptors: dict = None,
     color_by: str = None,
     title: str = "Scatter plot with image hover",
     legend_title: str = None,
-    save_dir: Path = "../plots",
+    save_dir: Path = Path("plots"),
     filename: str = "scatterplot_with_hover.html",
     show_plot: bool = False,
 ):
@@ -83,9 +82,6 @@ def scatter_with_images(
         ("(x,y)", "($x, $y)"),
     ] + descriptors_tooltips
 
-    # configure the output file
-    output_file(f"{save_dir}/{filename}")
-
     # Create the plot
     plot = figure(
         title=title,
@@ -97,19 +93,31 @@ def scatter_with_images(
         height=1000,
     )
     color_descriptor = descriptors[color_by]
-    categories = [str(i) for i in sorted(np.unique(color_descriptor))]
-    cmap = factor_cmap(color_by, palette=Category10[10], factors=categories)
+    legend_categories = [str(i) for i in sorted(np.unique(color_descriptor))]
+    color_map = factor_cmap(color_by, palette=Category20[len(legend_categories)], factors=legend_categories)
+
     # Add the scatter plot markers
-    plot.scatter(
-        "x",
-        "y",
+    # plot.scatter(
+    #     "x",
+    #     "y",
+    #     source=source,
+    #     color=color_map,
+    #     size=10,
+    #     line_color=None,
+    #     fill_alpha=0.7,
+    #     legend_group=color_by
+    # )
+    plot.circle(
         source=source,
-        color=cmap,
+        x="x",
+        y="y",
         size=10,
+        color=color_map,
         line_color=None,
         fill_alpha=0.7,
         legend_group=color_by,
     )
+
     plot.legend.title = legend_title
     # if you want to reorder the legend items
     # plot.legend[0].items
@@ -128,6 +136,9 @@ def scatter_with_images(
             """
         )
     )
+
+    # configure the output file
+    output_file(save_dir / filename)
 
     if show_plot:
         show(plot)

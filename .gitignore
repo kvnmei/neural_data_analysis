@@ -1,2 +1,6 @@
-.idea/
 neural_data_analysis.egg-info/
+.idea/shelf/
+.idea/workspace.xml
+.idea/usage.statistics.xml
+__pycache__/
+*.pyc

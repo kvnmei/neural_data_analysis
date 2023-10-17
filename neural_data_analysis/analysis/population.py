@@ -6,44 +6,25 @@ Functions:
 
 """
 
-from typing import List
 
 import numpy as np
 
 from neural_data_analysis.analysis import Neuron
+from neural_data_analysis.utils import brain_area_dict
 
 
-def subset_cells(cells: List[Neuron], area: str) -> List[Neuron]:
+def subset_cells(cells: np.array([Neuron]), area: str) -> list[Neuron]:
     """
     This function subsets out cells by brain region.
 
     Args:
-        cells (list[Neuron]): a list of Neuron objects
+        cells (np.array([Neuron])): a list of Neuron objects
         area (string): the brain area(s) to subset out
 
     Returns:
         cells_subset (list): a list of Neuron objects from the specified brain area(s)
     """
-    brain_area_dict = {
-        "all": [
-            "amygdala",
-            "hippocampus",
-            "orbitofrontal cortex",
-            "anterior cingulate cortex",
-            "supplementary motor area",
-        ],
-        "mtl": ["hippocampus", "amygdala"],
-        "amygdala": ["amygdala", "Amygdala"],
-        "amy": ["amygdala", "Amygdala"],
-        "hippocampus": ["hippocampus", "Hippocampus"],
-        "hpc": ["hippocampus", "Hippocampus"],
-        "orbitofrontal cortex": ["orbitofrontal cortex"],
-        "ofc": ["orbitofrontal cortex"],
-        "anterior cingulate cortex": ["anterior cingulate cortex"],
-        "acc": ["anterior cingulate cortex"],
-        "supplementary motor area": ["supplementary motor area"],
-        "sma": ["supplementary motor area"],
-    }
+
     subset_idx = []
     for i in np.arange(len(cells)):
         if cells[i].brain_area in brain_area_dict[area]:

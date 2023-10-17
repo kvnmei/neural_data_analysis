@@ -1,4 +1,5 @@
-from .string_processing import get_brain_area_abbreviation, remove_lateralization
+from .string_processing import brain_area_dict, brain_area_shortnames, get_brain_area_abbreviation, \
+    remove_lateralization
 from .utils import correct_filepath, create_order_index, recursive_dict_update
 
 __version__ = "0.0.1"

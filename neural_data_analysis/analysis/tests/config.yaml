@@ -1,0 +1,12 @@
+ImageLoader:
+  embedders_to_use:
+    - ResNet50Embedder
+    - CLIPEmbedder
+
+neuralNetwork:
+  lr: 0.001
+  max_epochs: 100
+  num_layers: 5
+  hidden_dims: 100
+  batch_size: 32
+  problem_type: regression # options: regression, classification, binary

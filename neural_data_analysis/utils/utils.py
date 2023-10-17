@@ -8,24 +8,20 @@ Classes:
     None
 """
 
-import os
-from typing import Dict, List
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 
-# from pathlib import Path
-
-
-def recursive_dict_update(original_dict: Dict, new_dict: Dict) -> None:
+def recursive_dict_update(original_dict: dict, new_dict: dict) -> None:
     """
     Recursively update a dictionary in-place with another dictionary.
     new_dict should have the same hierarchy and keys as original_dict for the keys to be updated.
 
     Args:
-        original_dict (Dict): dictionary to be updated
-        new_dict (Dict): dictionary to update with
+        original_dict (dict): dictionary to be updated
+        new_dict (dict): dictionary to update with
 
     """
     for key, value in new_dict.items():
@@ -35,36 +31,41 @@ def recursive_dict_update(original_dict: Dict, new_dict: Dict) -> None:
             original_dict[key] = value
 
 
-def correct_filepath(filepath: str, project_dir: str) -> str:
+# DEPRECATED in favor of pathlib.Path.parent
+def correct_filepath(filepath: Path, project_dir: str) -> Path:
     """
     Adds a "../" to the filename if working from a script in project subdirectories
+    or a "../../" if working from a script in project subdirectories/tests.
 
     Args:
-        filepath (str): path assuming that you are in the top-level project directory
+        filepath (Path): path assuming that you are in the top-level project directory
         project_dir (str): name of the top-level project directory
 
     Returns:
-        correct_path (str): new path relative to where script is being run
+        correct_path (Path): new path relative to where script is being run
     """
-    if os.getcwd().split("/")[-1] == project_dir:
+    if Path.cwd().parents[0] == project_dir:
         correct_path = filepath
-    elif os.getcwd().split("/")[-2] == project_dir:
-        correct_path = f"../{filepath}"
+    elif Path.cwd().parents[1] == project_dir:
+        correct_path = ".." / filepath
+    elif Path.cwd().parents[2] == project_dir:
+        correct_path = "../.." / filepath
     else:
         raise ValueError(
-            f"Current working directory is not in {project_dir} or {project_dir}/subdirectory."
+            f"Current working directory is not in {project_dir}, {project_dir}/subdirectory, "
+            f"or {project_dir}/subdirectory/tests."
         )
     return correct_path
 
 
-def create_order_index(array1: List, array2: List):
+def create_order_index(array1: list, array2: list):
     """
     Create an index to order array1 by array2.
     Values in the two arrays should match each other.
 
     Args:
-        array1 (List): list of values to be ordered
-        array2 (List): list of values to order by
+        array1 (list): list of values to be ordered
+        array2 (list): list of values to order by
 
     Example:
         array2 = [array1[i] for i in index]

@@ -1,15 +1,6 @@
-from .analysis import (
-    calc_firing_rates,
-    compute_psth,
-    Electrode,
-    Event,
-    ImageEmbedder,
-    LinearModel,
-    MLPClassifier,
-    MLPRegressor,
-    Neuron,
-    subset_cells,
-)
+from .analysis import (calc_firing_rates, compute_psth, create_image_embeddings, Electrode, embedder_config,
+                       embedder_from_spec, Event, ImageEmbedder, LinearModel, MLPClassifier, MLPModel, MLPRegressor,
+                       Neuron, subset_cells)
 from .plotting import plot_ecdf, scatter_with_images, variance_explained
 from .utils import (
     correct_filepath,

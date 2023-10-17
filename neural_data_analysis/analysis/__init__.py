@@ -1,8 +1,8 @@
 from .Electrode import Electrode
 from .Event import Event
-from .ImageEmbedder import ImageEmbedder
+from .ImageEmbedder import CLIPEmbedder, create_image_embeddings, embedder_config, embedder_from_spec, ResNet50Embedder
 from .LinearModel import LinearModel
-from .MLPModel import MLPClassifier, MLPRegressor
+from .MLPModel import MLPClassifier, MLPModel, MLPRegressor
 from .Neuron import Neuron
 from .population import subset_cells
 from .single_neuron import calc_firing_rates, compute_psth

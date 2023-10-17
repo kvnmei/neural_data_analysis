@@ -8,6 +8,37 @@ Functions:
 
 """
 
+brain_area_shortnames = {
+    "all": "all",
+    "Amygdala": "amy",
+    "amygdala": "amy",
+    "Hippocampus": "hpc",
+    "hippocampus": "hpc",
+    "orbitofrontal cortex": "ofc",
+    "anterior cingulate cortex": "acc",
+    "supplementary motor area": "sma",
+}
+
+brain_area_dict = {
+    "all": [
+        "amygdala",
+        "hippocampus",
+        "orbitofrontal cortex",
+        "anterior cingulate cortex",
+        "supplementary motor area",
+    ],
+    "mtl": ["hippocampus", "amygdala"],
+    "amygdala": ["amygdala", "Amygdala"],
+    "amy": ["amygdala", "Amygdala"],
+    "hippocampus": ["hippocampus", "Hippocampus"],
+    "hpc": ["hippocampus", "Hippocampus"],
+    "orbitofrontal cortex": ["orbitofrontal cortex"],
+    "ofc": ["orbitofrontal cortex"],
+    "anterior cingulate cortex": ["anterior cingulate cortex"],
+    "acc": ["anterior cingulate cortex"],
+    "supplementary motor area": ["supplementary motor area"],
+    "sma": ["supplementary motor area"],
+}
 
 def remove_lateralization(name: str) -> str:
     """
@@ -39,15 +70,6 @@ def get_brain_area_abbreviation(name: str) -> str:
         abbreviated_name (str): 3-letter abbreviation of brain area name
 
     """
-    brain_area_shortnames = {
-        "all": "all",
-        "Amygdala": "amy",
-        "amygdala": "amy",
-        "Hippocampus": "hpc",
-        "hippocampus": "hpc",
-        "orbitofrontal cortex": "ofc",
-        "anterior cingulate cortex": "acc",
-        "supplementary motor area": "sma",
-    }
+
     abbreviated_name = brain_area_shortnames[name]
     return abbreviated_name
