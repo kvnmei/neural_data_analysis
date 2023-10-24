@@ -7,14 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from PIL import Image
 from bokeh.io import output_file
 from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, save, show
 from bokeh.transform import factor_cmap
-from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from sklearn.metrics import pairwise_distances
 
 
 def scatter_with_images(
@@ -94,7 +95,9 @@ def scatter_with_images(
     )
     color_descriptor = descriptors[color_by]
     legend_categories = [str(i) for i in sorted(np.unique(color_descriptor))]
-    color_map = factor_cmap(color_by, palette=Category20[len(legend_categories)], factors=legend_categories)
+    color_map = factor_cmap(
+        color_by, palette=Category20[len(legend_categories)], factors=legend_categories
+    )
 
     # Add the scatter plot markers
     # plot.scatter(
@@ -262,6 +265,7 @@ def plot_ecdf(data):
         plt.show()
 
 
+# noinspection PyUnresolvedReferences
 def elbow_curve(data, max_k=10, plot=True, seed=42):
     inertia = []
     for k in np.arange(max_k):
@@ -274,3 +278,24 @@ def elbow_curve(data, max_k=10, plot=True, seed=42):
         plt.ylabel("Inertia")
         plt.show()
     return inertia
+
+
+def pairwise_distance_heatmap(embedding, distance_metric="cosine"):
+    """
+
+    Args:
+        embedding (np.array):
+        distance_metric (str, optional):
+
+    Returns:
+        None
+    """
+
+    pair_dist = pairwise_distances(embedding, metric=distance_metric)
+    pair_dist_df = pd.DataFrame(pair_dist)
+    plt.figure(figsize=(12, 10))
+    ax = sns.heatmap(pair_dist_df, cmap="YlGnBu")
+
+    save_dir = "../plots/pairwise_distance_matrices"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)

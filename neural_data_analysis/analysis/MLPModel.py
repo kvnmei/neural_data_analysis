@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+from typing import Protocol
 
 import lightning.pytorch as pl
 import matplotlib.pyplot as plt
@@ -7,9 +8,10 @@ import numpy as np
 import pandas as pd
 import torch
 import torchmetrics
+from torch.utils.data import DataLoader, TensorDataset
 
 
-class MLPModel(object):
+class MLPModel(Protocol):
     """
      Multi-layer perceptron model.
 
@@ -23,41 +25,48 @@ class MLPModel(object):
     def __init__(
         self,
         config: dict,
-        device: torch.device,
-        input_dims: list,
-        output_dims: list,
-    ):
+        input_dims: int,
+        output_dims: int,
+    ) -> None:
         self.config = config
-        self.device = device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.init_mlp(
-            device,
             input_dims=input_dims,
             output_dims=output_dims,
         )
 
-    def fit(self, X_train, y_train, X_val=None, y_val=None, run_info=None):
+    # noinspection PyPep8Naming
+    def fit(
+        self,
+        X_train: torch.Tensor,
+        y_train: torch.Tensor,
+        X_val: torch.Tensor = None,
+        y_val: torch.Tensor = None,
+        run_info: dict = None,
+    ):
         self.model.fit(X_train, y_train, X_val, y_val, run_info)
 
+    # noinspection PyPep8Naming
     def predict(self, X_test):
         predictions = self.model.predict(X_test)
         return predictions
 
-    def init_mlp(self, device, input_dims, output_dims):
+    def init_mlp(self, input_dims, output_dims):
         hparams = {
             "input_dims": input_dims,
             "output_dims": output_dims,
-            "hidden_dims": self.config["NeuralNetwork"]["hidden_dims"],
-            "num_layers": self.config["NeuralNetwork"]["num_layers"],
-            "learning_rate": self.config["NeuralNetwork"]["lr"],
-            "batch_size": self.config["NeuralNetwork"]["batch_size"],
-            "max_epochs": self.config["NeuralNetwork"]["max_epochs"],
-            "problem_type": self.config["NeuralNetwork"]["problem_type"],
+            "hidden_dims": self.config["hidden_dims"],
+            "num_layers": self.config["num_layers"],
+            "learning_rate": self.config["lr"],
+            "batch_size": self.config["batch_size"],
+            "max_epochs": self.config["max_epochs"],
+            "problem_type": self.config["problem_type"],
         }
-        model = MLPModel_Wrapper(hparams)
+        model = MLPModelWrapper(hparams)
         return model
 
 
-class MLPModel_Wrapper:
+class MLPModelWrapper:
     """
     Wrapper for MLPClassifier and MLPRegressor.
 
@@ -70,7 +79,14 @@ class MLPModel_Wrapper:
         save(self, path):
 
     """
+
     def __init__(self, hparams):
+        """
+        This model defines what type of MLP model to instantiate: classifier or regressor
+
+        Args:
+            hparams: hyperparameters
+        """
         self.hparams = hparams
         if self.hparams["problem_type"] == "classification":
             self.model = MLPClassifier(hparams)
@@ -82,8 +98,9 @@ class MLPModel_Wrapper:
                 f"Choose between 'classification' and 'regression'."
             )
 
-    def create_dataloader(self, dataset):
-        dataloader = torch.utils.data.DataLoader(
+    def create_dataloader(self, dataset: TensorDataset) -> DataLoader:
+        # TODO: how to check how many workers to assign for num_workers arg?
+        dataloader = DataLoader(
             dataset,
             batch_size=self.hparams["batch_size"],
             shuffle=True,
@@ -91,7 +108,10 @@ class MLPModel_Wrapper:
         )
         return dataloader
 
-    def create_trainer(self):
+    def create_trainer(self) -> pl.Trainer:
+        # TODO: create a variable expected_epochs, and check the expected number of batches to see what value
+        #  I should give for check_val_every_n_epochs, relates to log_every_n_steps too
+
         trainer = pl.Trainer(
             max_epochs=self.hparams["max_epochs"],
             num_sanity_val_steps=0,
@@ -100,21 +120,29 @@ class MLPModel_Wrapper:
         )
         return trainer
 
-    def fit(self, X_train, y_train, X_val=None, y_val=None, run_info=None):
-        val_dataloader = None
-        if not type(X_train) == torch.Tensor:
+    # noinspection PyPep8Naming
+    def fit(
+        self,
+        X_train: torch.Tensor,
+        y_train: torch.Tensor,
+        X_val: torch.Tensor = None,
+        y_val: torch.Tensor = None,
+        run_info: dict = None,
+    ):
+        # convert to torch.Tensors if numpy arrays are provided
+        if not torch.is_tensor(X_train):
             X_train = torch.from_numpy(X_train).float()
-        if not type(y_train) == torch.Tensor:
+        if not torch.is_tensor(y_train):
             y_train = torch.from_numpy(y_train).float()
-        dataset = torch.utils.data.TensorDataset(X_train, y_train)
+        dataset = TensorDataset(X_train, y_train)
         train_dataloader = self.create_dataloader(dataset)
         trainer = self.create_trainer()
 
         # if validation data is provided, use it
         if X_val is not None:
-            if not type(X_val) == torch.Tensor:
+            if not torch.is_tensor(X_val):
                 X_val = torch.from_numpy(X_val).float()
-            if not type(y_val) == torch.Tensor:
+            if not torch.is_tensor(y_val):
                 y_val = torch.from_numpy(y_val).float()
             dataset_val = torch.utils.data.TensorDataset(X_val, y_val)
             val_dataloader = self.create_dataloader(dataset_val)
@@ -123,24 +151,17 @@ class MLPModel_Wrapper:
             trainer.fit(self.model, train_dataloader)
 
         # plot losses
-        run_info_string = (
-            f"{run_info['brain_area']}"
-            f"_{run_info['bin_center']}"
-            f"_{run_info['bin_size']}"
-            f"_{run_info['embedding']}"
-            f"_fold{run_info['fold']}"
-        )
-        losses = {
-            "train": self.model.train_losses,
-            "val": self.model.val_losses,
-        }
-        plot_metrics(
-            losses,
-            metric="loss",
-            save_dir=run_info["save_dir"],
-            filename=run_info_string,
-            run_info=run_info,
-        )
+        if hasattr(self.model, "train_mean_losses"):
+            losses = {
+                "train": self.model.train_losses,
+                "val": self.model.val_losses,
+            }
+            plot_metrics(
+                losses,
+                metric="loss",
+                save_dir=run_info["save_dir"],
+                run_name=run_info["run_name"],
+            )
 
         # plot accuracies
         if hasattr(self.model, "train_mean_acc"):
@@ -148,18 +169,22 @@ class MLPModel_Wrapper:
                 "train": self.model.train_losses,
                 "val": self.model.val_losses,
             }
+            plot_metrics(
+                accuracies,
+                metric="accuracy",
+                save_dir=run_info["save_dir"],
+                run_name=run_info["run_name"],
+            )
 
-
-
-    def predict(self, X):
-        if not type(X) == torch.Tensor:
+    # noinspection PyPep8Naming
+    def predict(self, X: torch.Tensor) -> np.ndarray:
+        if not torch.is_tensor(X):
             X = torch.from_numpy(X).float()
         predictions = self.model(X)
         return predictions.detach().numpy()
 
     def save(self, path):
         torch.save(self.model.state_dict(), path)
-
 
 
 class MLPClassifier(pl.LightningModule):
@@ -277,6 +302,7 @@ class MLPClassifier(pl.LightningModule):
             self.network.parameters(), lr=self.params["learning_rate"]
         )
 
+
 class MLPRegressor(pl.LightningModule):
     """
     Methods:
@@ -371,8 +397,12 @@ class MLPRegressor(pl.LightningModule):
         )
 
 
-
-def plot_metrics(values: dict, metric: str = "losses", save_dir: Path = Path("plots"), label=None, show_plot=False, run_info=None) -> None:
+def plot_metrics(
+    values: dict,
+    metric: str = "losses",
+    save_dir: Path = Path("plots"),
+    run_name: str = "",
+) -> None:
     """
     Plot the losses of a model.
 
@@ -380,8 +410,7 @@ def plot_metrics(values: dict, metric: str = "losses", save_dir: Path = Path("pl
         values (dict): dictionary with keys "train" and "val" and values that are lists of values
         metric (str): metric to plot
         save_dir (Path): directory to save plots and csv files for metric values
-        label (str): label of the plot
-        show_plot (bool): whether to show the plot or not
+        run_name (str): name of the run
 
     Returns:
         None
@@ -394,7 +423,7 @@ def plot_metrics(values: dict, metric: str = "losses", save_dir: Path = Path("pl
 
     print(f"Plotting {metric} to {save_dir}...")
     _ = plt.figure()
-    plt.suptitle(label)
+    plt.suptitle(run_name)
     plt.scatter(
         np.arange(len(values["train"])),
         values["train"],
@@ -413,7 +442,7 @@ def plot_metrics(values: dict, metric: str = "losses", save_dir: Path = Path("pl
     plt.ylabel("Loss")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(plots_dir / f"{label}_train_val_{metric}.png")
+    plt.savefig(plots_dir / f"{run_name}_train_val_{metric}.png")
 
     values_df = pd.DataFrame(values)
-    values_df.to_csv(csv_dir / f"{label}_{metric}.csv")
+    values_df.to_csv(csv_dir / f"{run_name}_{metric}.csv")

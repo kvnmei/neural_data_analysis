@@ -82,8 +82,33 @@ def create_order_index(array1: list, array2: list):
     return index
 
 
+def reshape_into_2d(arr: np.array) -> np.array:
+    """
+    Turns a numpy ndarray of 1-d shape (n,) into (n, 1) or keeps 2-d shape (n, m) into (n, m).
+
+    Args:
+        arr (np.ndarray): input array
+
+    Returns:
+        arr (np.ndarray): reshaped array
+    """
+    if arr.ndim == 1:
+        arr = arr.reshape(-1, 1)
+    elif arr.ndim > 2:
+        raise ValueError("Array must be 1d or 2d.")
+    return arr
+
+
 def average_across_iterations(
-    df: pd.DataFrame, iter_var: str, target_var: str
+    df: pd.DataFrame,
+    iter_var: str,
+    target_var: list[str],
+    columns_to_keep: list[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
 ) -> pd.DataFrame:
     """
     Given a pandas DataFrame, average the target variable across all iterations.
@@ -93,7 +118,8 @@ def average_across_iterations(
     Args:
         df (pd.DataFrame): DataFrame containing the data
         iter_var (str): name of the column containing the iteration variable
-        target_var (str): name of the column containing the target variable
+        target_var (tuple[str]): name of the column(s) containing the target variable(s)
+        columns_to_keep (tuple[str]): list of the original dataframe columns to keep in the new dataframe
 
     Returns:
         df_avg (pd.DataFrame): DataFrame containing the averaged data
@@ -103,22 +129,30 @@ def average_across_iterations(
         Average the correlation across all folds.
         df_avg = average_across_iterations(df, iter_var="fold", target_var="correlation")
     """
-    df_avg = pd.DataFrame()
+
+    #  dataframe conversion, for now just fixed by making it a string
+    if isinstance(target_var, str):
+        target_var = tuple(target_var)
+
+    averaged_result_list_dict = []
     n_iter = len(np.unique(df[iter_var]))
+    # WARNING: function will not work if the iter_var is not repeated consecutive order in the dataframe
     for i in np.arange(0, len(df), n_iter):
-        temp = df.iloc[i : i + n_iter].reset_index(drop=True)
-        variable_avg = np.mean(temp[target_var].to_numpy())
-        variable_std = np.std(temp[target_var].to_numpy())
-        dict_avg = {
-            "brain_area": temp["brain_area"][0],
-            "bin_center": temp["bin_center"][0],
-            "bin_size": temp["bin_size"][0],
-            "embedding": temp["embedding"][0],
-            f"{target_var}_avg": variable_avg,
-            f"{target_var}_std": variable_std,
-        }
-        df_avg = pd.concat(
-            [df_avg, pd.DataFrame(dict_avg, index=[0])],
-            ignore_index=True,
-        )
-    return df_avg
+        _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
+        averaged_result_dict = {}
+        for col in columns_to_keep:
+            averaged_result_dict[f"{col}"] = _temp[f"{col}"][0]
+
+        for var in target_var:
+            variable_avg = np.mean(_temp[var].to_numpy(), axis=0)
+            variable_std = np.std(_temp[var].to_numpy(), axis=0)
+            averaged_result_dict.update(
+                {
+                    f"{var}_avg": variable_avg,
+                    f"{var}_std": variable_std,
+                }
+            )
+        averaged_result_list_dict.append(averaged_result_dict)
+
+    averaged_result_df = pd.DataFrame(averaged_result_list_dict)
+    return averaged_result_df

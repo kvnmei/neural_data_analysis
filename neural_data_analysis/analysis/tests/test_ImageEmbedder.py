@@ -17,8 +17,11 @@ class TestRandomData(unittest.TestCase):
         self.data = torch.rand(1, 224, 224, 3)
 
     def test_embed(self):
-        embeddings = create_image_embeddings(self.data, self.config["ImageLoader"]["embedders_to_use"],
-                                             self.config["ImageEmbedder"], self.device)
+        embeddings = create_image_embeddings(
+            self.data,
+            self.config["ImageLoader"]["embedders_to_use"],
+            self.config["ImageEmbedder"],
+        )
         assert len(embeddings) == len(self.config["ImageLoader"]["embedders_to_use"])
 
 
@@ -36,10 +39,13 @@ class TestRealImage(unittest.TestCase):
         self.data = image
 
     def test_embed(self):
-        embeddings = create_image_embeddings(self.data, self.config["ImageLoader"]["embedders_to_use"],
-                                             self.config["ImageEmbedder"], self.device)
+        embeddings = create_image_embeddings(
+            self.data,
+            self.config["ImageLoader"]["embedders_to_use"],
+            self.config["ImageEmbedder"],
+        )
         assert len(embeddings) == len(self.config["ImageLoader"]["embedders_to_use"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

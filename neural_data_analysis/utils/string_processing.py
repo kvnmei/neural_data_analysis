@@ -40,6 +40,7 @@ brain_area_dict = {
     "sma": ["supplementary motor area"],
 }
 
+
 def remove_lateralization(name: str) -> str:
     """
     Removes the "Left" or "Right" designation in brain area name.

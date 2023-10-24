@@ -1,10 +1,21 @@
 from .Electrode import Electrode
 from .Event import Event
-from .ImageEmbedder import CLIPEmbedder, create_image_embeddings, embedder_config, embedder_from_spec, ResNet50Embedder
+from .ImageEmbedder import (
+    CLIPEmbedder,
+    ResNet50Embedder,
+    create_image_embeddings,
+    embedder_config,
+    embedder_from_spec,
+)
 from .LinearModel import LinearModel
 from .MLPModel import MLPClassifier, MLPModel, MLPRegressor
 from .Neuron import Neuron
-from .population import subset_cells
+from .model_evaluation import (
+    append_model_scores,
+    evaluate_model_performance,
+    process_results_multiple_regression,
+)
+from .population import dataframe_from_cells, subset_cells
 from .single_neuron import calc_firing_rates, compute_psth
 
 __version__ = "0.0.1"
