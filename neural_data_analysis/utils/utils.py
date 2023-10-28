@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from typing import List
 
 
 def recursive_dict_update(original_dict: dict, new_dict: dict) -> None:
@@ -102,8 +103,8 @@ def reshape_into_2d(arr: np.array) -> np.array:
 def average_across_iterations(
     df: pd.DataFrame,
     iter_var: str,
-    target_var: list[str],
-    columns_to_keep: list[str] = (
+    target_var: List[str],
+    columns_to_keep: List[str] = (
         "brain_area",
         "bin_center",
         "bin_size",
