@@ -34,16 +34,6 @@ embedder_config = {
         "model": "openai/clip-vit-base-patch32",
         "processor": "openai/clip-vit-base-patch32",
     },
-    "resnet": {
-        "embedding_name": "resnet",
-        "batch_size": 64,
-    },
-    "clip": {
-        "embedding_name": "clip",
-        "batch_size": 512,
-        "model": "openai/clip-vit-base-patch32",
-        "processor": "openai/clip-vit-base-patch32",
-    },
     "rgbhsvl": {"embedding_name": "rgbhsvl",},
     "gist": {"embedding_name": "gist",},
     "moten": {"embedding_name": "moten",},
@@ -98,7 +88,7 @@ class ResNet50Embedder(ImageEmbedder, nn.Module):
         self.encoder.to(device)
         self.encoder.eval()
         self.processor = ResNet50_Weights.IMAGENET1K_V2.transforms()
-        self.batch_size = config["batch_size"]
+        self.batch_size = embedder_config["ResNet50Embedder"]["batch_size"]
 
     @torch.no_grad()
     def embed(self, images: torch.Tensor) -> torch.Tensor:
@@ -126,11 +116,11 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         nn.Module.__init__(self)
         self.config = config
         self.device = device
-        self.encoder = CLIPModel.from_pretrained(config["model"])
+        self.encoder = CLIPModel.from_pretrained(embedder_config["CLIPEmbedder"]["model"])
         self.encoder.to(device)
         self.encoder.eval()
-        self.processor = CLIPProcessor.from_pretrained(config["processor"])
-        self.batch_size = config["batch_size"]
+        self.processor = CLIPProcessor.from_pretrained(embedder_config["CLIPEmbedder"]["processor"])
+        self.batch_size = embedder_config["CLIPEmbedder"]["batch_size"]
 
     def preprocess(self, images: torch.Tensor) -> dict:
         images = self.processor(
