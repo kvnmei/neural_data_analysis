@@ -10,12 +10,13 @@ Functions:
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from typing import List
 
 from neural_data_analysis.analysis import Neuron
 from neural_data_analysis.utils import brain_area_dict
 
 
-def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> list[Neuron]:
+def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[Neuron]:
     """
     This function subsets out cells by brain region.
 

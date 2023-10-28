@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ from neural_data_analysis.utils import average_across_iterations, reshape_into_2
 
 def process_results_multiple_regression(
     df,
-    metrics: list[str] = ("r2", "corr"),
+    metrics: List[str] = ("r2", "corr"),
     model_eval_input_cols: dict = None,
     avg_across_variables: bool = True,
 ) -> pd.DataFrame:
@@ -49,7 +49,7 @@ def process_results_multiple_regression(
 
 def append_model_scores(
     df: pd.DataFrame,
-    metrics: Union[str, list[str]],
+    metrics: Union[str, List[str]],
     by_feature: bool = True,
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
@@ -87,9 +87,9 @@ def append_model_scores(
 def evaluate_model_performance(
     ground_truth: np.ndarray,
     predictions: np.ndarray,
-    metric: tuple[str],
+    metric: Tuple[str],
     by_feature=True,
-) -> dict[str, np.ndarray]:
+) -> Dict[str, np.ndarray]:
     """
     Args:
         ground_truth (np.ndarray): (n_samples, n_features)

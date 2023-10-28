@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
+from typing import List
 
 from neural_data_analysis.analysis.model_evaluation import evaluate_metric
 
@@ -47,7 +48,7 @@ def model_performance_by_fold(
 def model_performance_by_brain_area(
     df: pd.DataFrame,
     df_avg: pd.DataFrame = None,
-    metrics: list[str] = ("r2_mean", "corr_mean"),
+    metrics: List[str] = ("r2_mean", "corr_mean"),
     backend="seaborn",  # "bokeh
 ) -> None:
     """
@@ -95,7 +96,7 @@ def model_performance_by_brain_area(
 def model_performance_by_time(
     df: pd.DataFrame,
     df_avg: pd.DataFrame = None,
-    metrics: list[str] = ("r2_mean", "corr_mean"),
+    metrics: List[str] = ("r2_mean", "corr_mean"),
     backend="seaborn",
 ) -> None:
     """
@@ -200,7 +201,7 @@ def plot_model_predictions(
 
 
 
-def plot_confusion_matrix(confusion_mat: np.ndarray, labels: list[str] = None, backend: str = "sklearn"):
+def plot_confusion_matrix(confusion_mat: np.ndarray, labels: List[str] = None, backend: str = "sklearn"):
     """
 
     Args:
