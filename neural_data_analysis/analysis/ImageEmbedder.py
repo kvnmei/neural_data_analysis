@@ -95,6 +95,8 @@ class ResNet50Embedder(ImageEmbedder, nn.Module):
     @torch.no_grad()
     def embed(self, images: torch.Tensor) -> torch.Tensor:
         # Tensor should be (n_samples, n_channels, height, width)
+        if 'numpy' in str(type(images)):
+            images = torch.from_numpy(images)
         try:
             assert images.shape[1] == 3
         except AssertionError:
@@ -125,6 +127,8 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         self.batch_size = embedder_config["CLIPEmbedder"]["batch_size"]
 
     def preprocess(self, images: torch.Tensor) -> dict:
+        if 'numpy' in str(type(images)):
+            images = torch.from_numpy(images)
         # to PIL image
         images = images.permute(0, 3, 1, 2)
         images = [torchvision.transforms.ToPILImage()(img) for img in images]
