@@ -12,7 +12,7 @@ Examples:
 
 """
 
-from typing import Protocol
+from typing import Protocol, List, Dict
 
 import torch
 import torch.nn as nn
@@ -291,9 +291,9 @@ def embedder_from_spec(embedder_name: str) -> ImageEmbedder:
 # NOT USED
 def create_image_embeddings(
     images: torch.Tensor,
-    embedder_list: list[str],
+    embedder_list: List[str],
     embedder_specs: dict,
-) -> dict[str, torch.Tensor]:
+) -> Dict[str, torch.Tensor]:
     """
     Create embeddings for a list of images using a list of embedders.
 
