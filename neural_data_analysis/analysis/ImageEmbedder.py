@@ -16,11 +16,13 @@ from typing import Protocol, List, Dict
 
 import torch
 import torch.nn as nn
+import torchvision
 from torchvision.models import resnet50, ResNet50_Weights
 from tqdm import tqdm
 from transformers import (
     CLIPModel,
     CLIPProcessor,
+    AutoProcessor,
 )
 
 embedder_config = {
@@ -119,14 +121,17 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         self.encoder = CLIPModel.from_pretrained(embedder_config["CLIPEmbedder"]["model"])
         self.encoder.to(device)
         self.encoder.eval()
-        self.processor = CLIPProcessor.from_pretrained(embedder_config["CLIPEmbedder"]["processor"])
+        self.processor = AutoProcessor.from_pretrained(embedder_config["CLIPEmbedder"]["processor"])
         self.batch_size = embedder_config["CLIPEmbedder"]["batch_size"]
 
     def preprocess(self, images: torch.Tensor) -> dict:
+        # to PIL image
+        images = images.permute(0, 3, 1, 2)
+        images = [torchvision.transforms.ToPILImage()(img) for img in images]
         images = self.processor(
             # TODO: change the text from "a" to ""
-            text=["a"] * len(images),
-            images=[images[i] for i in range(images.shape[0])],
+            # text=["a"] * len(images),
+            images=images,
             return_tensors="pt",
             padding=True,
         ).to(self.device)
@@ -140,8 +145,9 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         for i in tqdm(range(0, images.shape[0], self.batch_size)):
             batch = images[i : i + self.batch_size]
             batch = self.preprocess(batch)  # returns a dict-like object
-            batch = self.encoder(**batch)
-            results.append(batch["image_embeds"])
+            batch = self.encoder.get_image_features(**batch)
+            results.append(batch)
+            # results.append(batch["image_embeds"])
         results = torch.cat(results, dim=0)
         return results
 
