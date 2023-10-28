@@ -15,11 +15,12 @@ from bokeh.transform import factor_cmap
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from typing import List
 
 
 def plot_scatter_with_images(
     data_points: np.ndarray,
-    images: list[Image],
+    images: List[Image.Image],
     descriptors: dict = None,
     color_by: str = None,
     title: str = "Scatter plot with image hover",
