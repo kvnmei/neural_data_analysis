@@ -16,7 +16,10 @@ brain_area_shortnames = {
     "hippocampus": "hpc",
     "orbitofrontal cortex": "ofc",
     "anterior cingulate cortex": "acc",
+    "ACC": "acc",
     "supplementary motor area": "sma",
+    "preSMA": "presma",
+    "vmPFC": "vmpfc",
 }
 
 brain_area_dict = {
@@ -36,8 +39,11 @@ brain_area_dict = {
     "ofc": ["orbitofrontal cortex"],
     "anterior cingulate cortex": ["anterior cingulate cortex"],
     "acc": ["anterior cingulate cortex"],
+    "ACC": ["anterior cingulate cortex"],
     "supplementary motor area": ["supplementary motor area"],
     "sma": ["supplementary motor area"],
+    "presma": ["pre-supplementary motor area"],
+    "vmpfc": ["ventromedial prefrontal cortex"],
 }
 
 

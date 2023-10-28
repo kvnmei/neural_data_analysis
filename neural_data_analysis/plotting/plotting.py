@@ -7,18 +7,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from PIL import Image
 from bokeh.io import output_file
 from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, save, show
 from bokeh.transform import factor_cmap
+from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-from sklearn.metrics import pairwise_distances
 
 
-def scatter_with_images(
+def plot_scatter_with_images(
     data_points: np.ndarray,
     images: list[Image],
     descriptors: dict = None,
@@ -28,7 +27,7 @@ def scatter_with_images(
     save_dir: Path = Path("plots"),
     filename: str = "scatterplot_with_hover.html",
     show_plot: bool = False,
-):
+) -> None:
     """
     Create a 2-D bokeh scatterplot in HTML with hover tool that displays images.
 
@@ -151,7 +150,7 @@ def scatter_with_images(
         print("Done.")
 
 
-def variance_explained(data_points, plot_name=None, save_plot=False):
+def plot_variance_explained(data_points, plot_name=None, save_plot=False):
     """
     Plots the variance explain per principal component
     and a cumulative variance explained per principal component
@@ -280,22 +279,63 @@ def elbow_curve(data, max_k=10, plot=True, seed=42):
     return inertia
 
 
-def pairwise_distance_heatmap(embedding, distance_metric="cosine"):
+def pairwise_distance_heatmap(pw_dist_mat: np.ndarray, backend: str = "seaborn") -> None:
     """
 
     Args:
-        embedding (np.array):
-        distance_metric (str, optional):
+        pw_dist_mat (np.ndarray): pairwise distance matrix
+        backend (str): which plotting package to use
 
     Returns:
         None
     """
 
-    pair_dist = pairwise_distances(embedding, metric=distance_metric)
-    pair_dist_df = pd.DataFrame(pair_dist)
-    plt.figure(figsize=(12, 10))
-    ax = sns.heatmap(pair_dist_df, cmap="YlGnBu")
+    if backend == "seaborn":
+        pair_dist_df = pd.DataFrame(pw_dist_mat)
+        fig, ax = plt.subplots(figsize=(12, 10))
+        sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
+        plt.show()
 
-    save_dir = "../plots/pairwise_distance_matrices"
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    save_dir = Path("../plots/pairwise_distance_matrices")
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+def plot_tsne_projection(tsne_mat: np.ndarray, labels: np.ndarray, backend: str = "seaborn") -> None:
+    """
+
+    Args:
+        tsne_mat (np.ndarray): t-SNE projection matrix
+        labels (np.ndarray): labels for each data point
+        backend (str): which plotting package to use
+
+    Returns:
+        None
+    """
+
+    df_plot = pd.DataFrame({
+        "tsne_1": tsne_mat[:, 0],
+        "tsne_2": tsne_mat[:, 1],
+        "label": labels
+    })
+
+    if backend == "seaborn":
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            df_plot,
+            x="tsne_1",
+            y="tsne_2",
+            hue="label",
+            ax=ax
+        )
+        # legend1 = ax.legend(
+        #     *scatter.legend_elements(),
+        #     loc="upper left",
+        #     bbox_to_anchor=(1.05, 1.0),
+        # )
+        # ax.add_artist(legend1)
+        # plt.legend()
+        plt.xlabel("t-SNE Dimension 1")
+        plt.ylabel("t-SNE Dimension 2")
+        plt.title("t-SNE Plot Colored by Cluster Label")
+        plt.subplots_adjust(right=0.7)
+        # plt.tight_layout(rect=[0, 0, 0.75, 1])
+        plt.show()

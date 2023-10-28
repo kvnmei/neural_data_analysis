@@ -34,6 +34,19 @@ embedder_config = {
         "model": "openai/clip-vit-base-patch32",
         "processor": "openai/clip-vit-base-patch32",
     },
+    "resnet": {
+        "embedding_name": "resnet",
+        "batch_size": 64,
+    },
+    "clip": {
+        "embedding_name": "clip",
+        "batch_size": 512,
+        "model": "openai/clip-vit-base-patch32",
+        "processor": "openai/clip-vit-base-patch32",
+    },
+    "rgbhsvl": {"embedding_name": "rgbhsvl",},
+    "gist": {"embedding_name": "gist",},
+    "moten": {"embedding_name": "moten",},
     # "blip_encoder": {
     #     "name": "blip",
     #     "batch_size": "64",

@@ -60,14 +60,15 @@ def append_model_scores(
     Appends the metric scores to the input dataframe.
 
     Args:
-        pred_col:
-        gt_col:
-        by_feature:
-        df:
-        metrics:
+        df: dataframe containing the ground truth and predictions
+        metrics: list of metrics to compute between predictions and ground truth
+        pred_col: name of the column containing the predictions
+        gt_col: name of the column containing the ground truth
+        by_feature: if True, evaluate performance for each feature separately
+            if False, evaluate performance for each sample separately
 
     Returns:
-
+        None, appends the metrics to the input df
     """
     if isinstance(metrics, str):
         metrics = tuple(metrics)
@@ -88,7 +89,7 @@ def evaluate_model_performance(
     predictions: np.ndarray,
     metric: tuple[str],
     by_feature=True,
-) -> dict[str, np.ndarray[float]]:
+) -> dict[str, np.ndarray]:
     """
     Args:
         ground_truth (np.ndarray): (n_samples, n_features)
@@ -187,11 +188,11 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
         score = r2_score(ground_truth, predictions)
     elif (metric == "mean-squared-error") or (metric == "mse"):
         score = mean_squared_error(ground_truth, predictions)
-    elif metric == "cosine_similarity":
+    elif (metric == "cosine_similarity") or (metric == "cos_sim"):
         score = cosine_similarity(
             ground_truth.reshape(1, -1), predictions.reshape(1, -1)
         ).item()
-    elif metric == "accuracy":
+    elif (metric == "accuracy") or (metric == "acc"):
         score = np.mean(ground_truth == predictions)
     else:
         raise ValueError(f"Metric {metric} not supported.")

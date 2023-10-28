@@ -1,3 +1,4 @@
+from .nwb_tools import (get_nwb_files)
 from .string_processing import (
     brain_area_dict,
     brain_area_shortnames,

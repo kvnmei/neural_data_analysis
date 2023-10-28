@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
 
 from neural_data_analysis.analysis.model_evaluation import evaluate_metric
+
 
 # TODO: fix legend location
 
@@ -163,9 +165,9 @@ def plot_model_predictions(
     _corr = evaluate_metric(ground_truth, predictions, "corr")
 
     if backend == "matplotlib":
-        fig, ax = plt.subplots()
-        ax.scatter(x_range, ground_truth, marker=".", label="ground_truth")
-        ax.scatter(
+        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(6, 10))
+        axes[0].scatter(x_range, ground_truth, marker=".", label="ground_truth")
+        axes[0].scatter(
             x_range,
             predictions,
             marker=".",
@@ -175,15 +177,50 @@ def plot_model_predictions(
         if block_size > 0:
             block_dividers = np.arange(x_range[0], len(x_range), block_size)
             for div in block_dividers:
-                ax.axvline(x=div, color="red", linestyle="--")
+                axes[0].axvline(x=div, color="red", linestyle="--")
 
-        plt.xlabel("index")
-        plt.ylabel(f"value")
+        axes[0].set_xlabel("index")
+        axes[0].set_ylabel(f"value")
+        axes[0].legend()
+
+        # axes[0].set_title(f"R2: {_r2:.3f} | Corr: {_corr:.3f}")
+
+        axes[1].scatter(ground_truth, predictions)
+        axes[1].set_xlabel("ground truth")
+        axes[1].set_ylabel("predictions")
+        axes[1].set_title(f"R2: {_r2:.3f} | Corr: {_corr:.3f}")
+
+        theta = np.polyfit(ground_truth, predictions, deg=1)
+        best_fit = theta[0] * ground_truth + theta[1]
+        axes[1].plot(ground_truth, best_fit, linestyle="--", color="red")
+
         plt.suptitle(f"Ground truth vs. Predictions")
-        plt.title(f"R2: {_r2:.3f} | Corr: {_corr:.3f}")
-        plt.legend()
         plt.tight_layout()
         plt.show()
+
+
+
+def plot_confusion_matrix(confusion_mat: np.ndarray, labels: list[str] = None, backend: str = "sklearn"):
+    """
+
+    Args:
+        confusion_mat:
+
+    Returns:
+
+    """
+    if backend == "sklearn":
+        _ = ConfusionMatrixDisplay(confusion_mat, display_labels=labels)
+        _.plot()
+        plt.tight_layout()
+        plt.show()
+    elif backend == "seaborn":
+        plt.figure()
+        sns.heatmap(confusion_mat, annot=True)
+        plt.show()
+
+
+
 
     # TODO: this is for bokeh backend of model performance by brain area
     # color_by = "score_type"
