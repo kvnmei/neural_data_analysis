@@ -153,8 +153,8 @@ class MLPModelWrapper:
         # plot losses
         if hasattr(self.model, "train_mean_losses"):
             losses = {
-                "train": self.model.train_losses,
-                "val": self.model.val_losses,
+                "train": self.model.train_mean_losses,
+                "val": self.model.val_mean_losses,
             }
             plot_metrics(
                 losses,
@@ -431,7 +431,7 @@ def plot_metrics(
         # label="train"
     )
     plt.scatter(
-        np.arange(len(values)),
+        np.arange(len(values["val"])),
         values["val"],
         marker=".",
         # label="val"
