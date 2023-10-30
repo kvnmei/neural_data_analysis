@@ -219,7 +219,22 @@ def plot_confusion_matrix(confusion_mat: np.ndarray, labels: list[str] = None, b
         sns.heatmap(confusion_mat, annot=True)
         plt.show()
 
+def plot_object_detection_result(object_detection_embedder, image, result, ax=None):
 
+        fig, ax = plt.subplots()
+        ax.imshow(image[0])
+        # indicate the bounding box
+        for score, label, box in zip(result["scores"], result["labels"], result["boxes"]):
+            box = box.detach().numpy()
+            # decode label
+            label = object_detection_embedder.encoder.config.id2label[label.item()]
+            ax.plot(
+                [box[0], box[2], box[2], box[0], box[0]],
+                [box[1], box[1], box[3], box[3], box[1]],
+                label=label,
+            )
+        ax.legend()
+        return ax
 
 
     # TODO: this is for bokeh backend of model performance by brain area

@@ -1,5 +1,6 @@
 import itertools
 
+# TODO: implement principal component regression
 
 def run_kfold_cv(input_dict: dict, output_dict: dict, input_param_names: list[str]):
     # TODO: Finish implementing this... difficult roadblock because not sure input_dict keys are tuples

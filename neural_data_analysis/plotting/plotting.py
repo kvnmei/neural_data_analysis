@@ -299,6 +299,7 @@ def pairwise_distance_heatmap(pw_dist_mat: np.ndarray, backend: str = "seaborn")
     save_dir = Path("../plots/pairwise_distance_matrices")
     save_dir.mkdir(exist_ok=True, parents=True)
 
+
 def plot_tsne_projection(tsne_mat: np.ndarray, labels: np.ndarray, backend: str = "seaborn") -> None:
     """
 
@@ -339,3 +340,20 @@ def plot_tsne_projection(tsne_mat: np.ndarray, labels: np.ndarray, backend: str 
         plt.subplots_adjust(right=0.7)
         # plt.tight_layout(rect=[0, 0, 0.75, 1])
         plt.show()
+
+def plot_design_matrix(design_matrix):
+    """
+    This plots the design matrix that goes into a linear decoding/encoding model.
+
+    Returns:
+
+    """
+
+    #TODO: write this function
+
+    # also create a visualization of the entire design matrix
+    plt.figure()
+    plt.imshow(design_matrix, aspect="auto")
+    plt.xlabel("Feature")
+    plt.ylabel("Time (Frames)")
+    plt.show()

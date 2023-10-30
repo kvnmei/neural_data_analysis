@@ -2,6 +2,7 @@ ImageLoader:
   embedders_to_use:
     - ResNet50Embedder
     - CLIPEmbedder
+    - DETREmbedder
 
 MLPModel:
   lr: 0.001

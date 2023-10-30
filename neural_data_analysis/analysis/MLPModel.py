@@ -115,6 +115,8 @@ class MLPModelWrapper:
         trainer = pl.Trainer(
             max_epochs=self.hparams["max_epochs"],
             num_sanity_val_steps=0,
+            gpus=-1,
+            distributed_backend="ddp"
             # logger=None,
             # check_val_every_n_epoch=1,
         )
