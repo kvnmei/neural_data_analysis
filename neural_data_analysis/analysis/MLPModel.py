@@ -11,7 +11,7 @@ import torchmetrics
 from torch.utils.data import DataLoader, TensorDataset
 
 
-class MLPModel(Protocol):
+class MLPModel:
     """
      Multi-layer perceptron model.
 
@@ -55,12 +55,12 @@ class MLPModel(Protocol):
         hparams = {
             "input_dims": input_dims,
             "output_dims": output_dims,
-            "hidden_dims": self.config["hidden_dims"],
-            "num_layers": self.config["num_layers"],
-            "learning_rate": self.config["lr"],
-            "batch_size": self.config["batch_size"],
-            "max_epochs": self.config["max_epochs"],
-            "problem_type": self.config["problem_type"],
+            "hidden_dims": self.config["ExperimentRunner"]["MLPModel"]["hidden_dims"],
+            "num_layers": self.config["ExperimentRunner"]["MLPModel"]["num_layers"],
+            "learning_rate": self.config["ExperimentRunner"]["MLPModel"]["lr"],
+            "batch_size": self.config["ExperimentRunner"]["MLPModel"]["batch_size"],
+            "max_epochs": self.config["ExperimentRunner"]["MLPModel"]["max_epochs"],
+            "problem_type": self.config["ExperimentRunner"]["MLPModel"]["problem_type"],
         }
         model = MLPModelWrapper(hparams)
         return model
@@ -155,8 +155,8 @@ class MLPModelWrapper:
         # plot losses
         if hasattr(self.model, "train_mean_losses"):
             losses = {
-                "train": self.model.train_losses,
-                "val": self.model.val_losses,
+                "train": self.model.train_mean_losses,
+                "val": self.model.val_mean_losses,
             }
             plot_metrics(
                 losses,
@@ -433,7 +433,7 @@ def plot_metrics(
         # label="train"
     )
     plt.scatter(
-        np.arange(len(values)),
+        np.arange(len(values["val"])),
         values["val"],
         marker=".",
         # label="val"

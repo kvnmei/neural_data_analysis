@@ -15,11 +15,12 @@ from bokeh.transform import factor_cmap
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from typing import List
 
 
 def plot_scatter_with_images(
     data_points: np.ndarray,
-    images: list[Image],
+    images: List[Image.Image],
     descriptors: dict = None,
     color_by: str = None,
     title: str = "Scatter plot with image hover",
@@ -62,6 +63,8 @@ def plot_scatter_with_images(
         img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
         images_base64.append("data:image/png;base64," + img_str)
 
+    if descriptors is None:
+        descriptors = {}
     # Create a data source for the plot
     source_dict = {
         "x": np.array([p[0] for p in data_points]),
@@ -92,33 +95,33 @@ def plot_scatter_with_images(
         width=1000,
         height=1000,
     )
-    color_descriptor = descriptors[color_by]
-    legend_categories = [str(i) for i in sorted(np.unique(color_descriptor))]
-    color_map = factor_cmap(
-        color_by, palette=Category20[len(legend_categories)], factors=legend_categories
-    )
 
-    # Add the scatter plot markers
-    # plot.scatter(
-    #     "x",
-    #     "y",
-    #     source=source,
-    #     color=color_map,
-    #     size=10,
-    #     line_color=None,
-    #     fill_alpha=0.7,
-    #     legend_group=color_by
-    # )
-    plot.circle(
-        source=source,
-        x="x",
-        y="y",
-        size=10,
-        color=color_map,
-        line_color=None,
-        fill_alpha=0.7,
-        legend_group=color_by,
-    )
+    if not descriptors == {}:
+        color_descriptor = descriptors[color_by]
+        legend_categories = [str(i) for i in sorted(np.unique(color_descriptor))]
+        color_map = factor_cmap(
+            color_by, palette=Category20[len(legend_categories)], factors=legend_categories
+        )
+
+        plot.circle(
+            source=source,
+            x="x",
+            y="y",
+            size=10,
+            color=color_map,
+            line_color=None,
+            fill_alpha=0.7,
+            legend_group=color_by,
+        )
+    else:
+        plot.circle(
+            source=source,
+            x="x",
+            y="y",
+            size=10,
+            line_color=None,
+            fill_alpha=0.7,
+        )
 
     plot.legend.title = legend_title
     # if you want to reorder the legend items
@@ -141,13 +144,12 @@ def plot_scatter_with_images(
 
     # configure the output file
     output_file(save_dir / filename)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    save(plot)
 
     if show_plot:
         show(plot)
-    else:
-        print(f"Saving plot to {save_dir}/{filename}")
-        save(plot)
-        print("Done.")
 
 
 def plot_variance_explained(data_points, plot_name=None, save_plot=False):
