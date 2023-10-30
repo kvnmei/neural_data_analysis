@@ -20,10 +20,9 @@ import torch.nn as nn
 import torchvision
 from torchvision import transforms
 from torchvision.models import resnet50, ResNet50_Weights, vit_b_16, ViT_B_16_Weights
-
 from tqdm import tqdm
-from transformers import (AutoImageProcessor, AutoModelForObjectDetection, AutoProcessor, BlipForConditionalGeneration,
-                          CLIPModel, CLIPProcessor)
+from transformers import (AutoImageProcessor, AutoModelForObjectDetection, AutoProcessor, Blip2ForConditionalGeneration,
+                          Blip2Processor, BlipForConditionalGeneration, CLIPModel)
 
 embedder_config = {
     "ResNet50Embedder": {
@@ -50,6 +49,13 @@ embedder_config = {
         "batch_size": 64,
         "model": "Salesforce/blip-image-captioning-base",
         "processor": "Salesforce/blip-image-captioning-base",
+    },
+    "BLIP2Embedder": {
+        "embedding_name": "blip2",
+        "embedding_description": "BLIP: Learning Better Language Models by Encoding Images in Text Sequences",
+        "batch_size": 64,
+        "model": "Salesforce/blip2-opt-2.7b",
+        "processor": "Salesforce/blip2-opt-2.7b",
     },
     "ViT_B_16Embedder": {
         "embedding_name": "vit",
@@ -269,9 +275,11 @@ class BLIPEmbedder(ImageEmbedder):
         self.text_prompt = "A picture of "
         self.batch_size = self.config["batch_size"]
 
+
     def embed(self, images: torch.Tensor) -> torch.Tensor:
-        result = []
-        result_batch = []
+        result_text = []
+        result_ids = []
+        print("Embedding with BLIP...")
         with torch.no_grad():
             for i in tqdm(range(0, len(images), self.batch_size)):
                 batch = images[i : i + self.batch_size]
@@ -282,14 +290,61 @@ class BLIPEmbedder(ImageEmbedder):
                     return_tensors="pt",
                     padding=True,
                 ).to(self.device)
-                batch = self.encoder.generate(**batch)
-                r = self.processor.batch_decode(batch, skip_special_tokens=True)
-                result.append(r)
-                result_batch.append(batch)
+                ids = self.encoder.generate(**batch)
+                text = self.processor.batch_decode(batch, skip_special_tokens=True)
+                result_text.append(text)
+                result_ids.append(batch)
         # flatten the list
-        result = [item for sublist in result for item in sublist]
-        result_batch = [item for sublist in result_batch for item in sublist]
-        return result, result_batch
+        result_text = [item for sublist in result_text for item in sublist]
+        result_ids = [item.cpu().numpy() for sublist in result_ids for item in sublist]
+        results = {
+            "embeddings": result_ids,
+            "captions": result_text,
+        }
+        return results
+
+class BLIP2Embedder(ImageEmbedder):
+    def __init__(self, config: dict, device: torch.device) -> None:
+        super().__init__()
+        self.config = config
+        self.device = device
+        self.processor = Blip2Processor.from_pretrained(
+            self.config["processor"]
+        )
+        self.encoder = Blip2ForConditionalGeneration.from_pretrained(
+            self.config["model"],
+            torch_dtype=torch.float16,
+        ).to(self.device)
+
+        # self.text_prompt = "A picture of "
+        self.batch_size = self.config["batch_size"]
+
+    def embed(self, images: torch.Tensor) -> torch.Tensor:
+        result_text = []
+        result_ids = []
+        print("Embedding with BLIP2...")
+        with torch.no_grad():
+            for i in tqdm(range(0, len(images), self.batch_size)):
+                batch = images[i : i + self.batch_size]
+                batch = batch.to(self.device)
+                batch = self.processor(
+                    # text=[self.text_prompt] * len(batch),
+                    images=[batch[j] for j in range(batch.shape[0])],
+                    return_tensors="pt",
+                    padding=True,
+                ).to(self.device)
+                ids = self.encoder.generate(**batch)
+                text = self.processor.batch_decode(batch, skip_special_tokens=True)
+                result_ids.append(ids)
+                result_text.append(text)
+        # flatten the list
+        result_ids= [item.cpu().numpy() for sublist in result_ids for item in sublist]
+        result_text = [item for sublist in result_text for item in sublist]
+        results = {
+            "ids": result_ids,
+            "text": result_text,
+        }
+        return results
 
 
 class ViTEmbedder(ImageEmbedder):
@@ -333,6 +388,9 @@ def embedder_from_spec(embedder_name: str, device: str = None) -> ImageEmbedder:
     elif embedder_name == "BLIPEmbedder":
         spec = embedder_config[embedder_name]
         return BLIPEmbedder(spec, device)
+    elif embedder_name == "BLIP2Embedder":
+        spec = embedder_config[embedder_name]
+        return BLIP2Embedder(spec, device)
     elif embedder_name == "ViT_B_16Embedder":
         spec = embedder_config[embedder_name]
         return ViTEmbedder(spec, device)

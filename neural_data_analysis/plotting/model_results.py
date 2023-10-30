@@ -1,9 +1,27 @@
+"""
+
+Plotting functions for model results.
+
+Functions:
+
+    model_performance_by_fold
+    model_performance_by_brain_area
+    model_performance_by_time
+    plot_model_predictions
+    plot_confusion_matrix
+    plot_object_detection_result
+
+
+
+"""
+
+from typing import List
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
-from typing import List
 
 from neural_data_analysis.analysis.model_evaluation import evaluate_metric
 
@@ -220,22 +238,18 @@ def plot_confusion_matrix(confusion_mat: np.ndarray, labels: List[str] = None, b
         sns.heatmap(confusion_mat, annot=True)
         plt.show()
 
-def plot_object_detection_result(object_detection_embedder, image, result, ax=None):
-
+def plot_object_detection_result(image, result, ax=None):
         fig, ax = plt.subplots()
-        ax.imshow(image[0])
+        ax.imshow(image)
         # indicate the bounding box
         for score, label, box in zip(result["scores"], result["labels"], result["boxes"]):
-            box = box.detach().numpy()
-            # decode label
-            label = object_detection_embedder.encoder.config.id2label[label.item()]
             ax.plot(
                 [box[0], box[2], box[2], box[0], box[0]],
                 [box[1], box[1], box[3], box[3], box[1]],
                 label=label,
             )
         ax.legend()
-        return ax
+        plt.show()
 
 
     # TODO: this is for bokeh backend of model performance by brain area
