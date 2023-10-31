@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple, Dict
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -197,3 +197,9 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score
+
+
+def residual_analysis(y_val, preds):
+    # TODO: implement this function
+
+    return None

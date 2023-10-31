@@ -20,6 +20,7 @@ brain_area_shortnames = {
     "supplementary motor area": "sma",
     "preSMA": "presma",
     "vmPFC": "vmpfc",
+    # "RSPE": "rspe",
 }
 
 brain_area_dict = {
@@ -61,6 +62,8 @@ def remove_lateralization(name: str) -> str:
         name = name.replace("Left ", "")
     elif name.startswith("Right "):
         name = name.replace("Right ", "")
+    # elif name == "RSPE":
+    #     print(f"Brain area: {name} has no lateralization.")
     else:
         raise ValueError(f"Brain area: {name} is not implemented here!")
     return name
