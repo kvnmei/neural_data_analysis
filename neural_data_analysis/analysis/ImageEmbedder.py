@@ -12,12 +12,14 @@ Examples:
 
 """
 
-from typing import Protocol
+from typing import Protocol, List, Dict
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
+import yaml
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from torchvision import transforms
 from torchvision.models import resnet50, ResNet50_Weights, vit_b_16, ViT_B_16_Weights
 from tqdm import tqdm
@@ -133,7 +135,7 @@ class ResNet50Embedder(ImageEmbedder, nn.Module):
         results = []
         print("Embedding with ResNet...")
         for i in tqdm(range(0, images.shape[0], self.batch_size)):
-            batch = images[i : i + self.batch_size]
+            batch = images[i: i + self.batch_size]
             batch = self.processor(batch).to(self.device)
             batch = self.encoder(batch)
             results.append(batch)
@@ -174,7 +176,7 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         results = []
         print("Embedding with CLIP...")
         for i in tqdm(range(0, images.shape[0], self.batch_size)):
-            batch = images[i : i + self.batch_size]
+            batch = images[i: i + self.batch_size]
             batch = self.preprocess(batch)  # returns a dict-like object
             batch = self.encoder.get_image_features(**batch)
             results.append(batch)
@@ -203,7 +205,7 @@ class DETREmbedder(ImageEmbedder):
         return images
 
     @torch.no_grad()
-    def embed(self, images: torch.Tensor) -> list[dict]:
+    def embed(self, images: torch.Tensor) -> List[dict]:
         """
         Args:
             images (torch.Tensor): (n_samples, n_channels, height, width)
@@ -231,8 +233,8 @@ class DETREmbedder(ImageEmbedder):
         result_obj_scores = []
         print("Embedding with DETR...")
         for i in tqdm(range(0, len(images), self.batch_size)):
-            batch = images[i : i + self.batch_size]
-            batch_target_sizes = target_sizes[i : i + self.batch_size]
+            batch = images[i: i + self.batch_size]
+            batch_target_sizes = target_sizes[i: i + self.batch_size]
             inputs = self.preprocess(batch)
             outputs = self.encoder(**inputs)
             result = self.processor.post_process_object_detection(
@@ -275,14 +277,13 @@ class BLIPEmbedder(ImageEmbedder):
         self.text_prompt = "A picture of "
         self.batch_size = self.config["batch_size"]
 
-
     def embed(self, images: torch.Tensor) -> torch.Tensor:
         result_text = []
         result_ids = []
         print("Embedding with BLIP...")
         with torch.no_grad():
             for i in tqdm(range(0, len(images), self.batch_size)):
-                batch = images[i : i + self.batch_size]
+                batch = images[i: i + self.batch_size]
                 batch = batch.to(self.device)
                 batch = self.processor(
                     text=[self.text_prompt] * len(batch),
@@ -303,6 +304,7 @@ class BLIPEmbedder(ImageEmbedder):
         }
         return results
 
+
 class BLIP2Embedder(ImageEmbedder):
     def __init__(self, config: dict, device: torch.device) -> None:
         super().__init__()
@@ -322,27 +324,34 @@ class BLIP2Embedder(ImageEmbedder):
     def embed(self, images: torch.Tensor) -> torch.Tensor:
         result_text = []
         result_ids = []
+        image_ids = []
+        current_image_id = 0
         print("Embedding with BLIP2...")
         with torch.no_grad():
             for i in tqdm(range(0, len(images), self.batch_size)):
-                batch = images[i : i + self.batch_size]
+                batch = images[i: i + self.batch_size]
                 batch = batch.to(self.device)
                 batch = self.processor(
                     # text=[self.text_prompt] * len(batch),
-                    images=[batch[j] for j in range(batch.shape[0])],
+                    images=batch,
                     return_tensors="pt",
                     padding=True,
                 ).to(self.device)
                 ids = self.encoder.generate(**batch)
-                text = self.processor.batch_decode(batch, skip_special_tokens=True)
+                text = self.processor.batch_decode(ids, skip_special_tokens=True)
                 result_ids.append(ids)
                 result_text.append(text)
+                for el in range(len(text)):
+                    # print(f"Image {current_image_id}: {text[el]}")
+                    image_ids.append(current_image_id)
+                    current_image_id += 1
         # flatten the list
-        result_ids= [item.cpu().numpy() for sublist in result_ids for item in sublist]
+        result_ids = [item.cpu().numpy() for sublist in result_ids for item in sublist]
         result_text = [item for sublist in result_text for item in sublist]
         results = {
             "ids": result_ids,
             "text": result_text,
+            "image_ids": image_ids,
         }
         return results
 
@@ -401,10 +410,10 @@ def embedder_from_spec(embedder_name: str, device: str = None) -> ImageEmbedder:
 # NOT USED
 # noinspection PyShadowingNames
 def create_image_embeddings(
-    images: torch.Tensor,
-    embedder_list: list[str],
-    embedder_config: dict,
-) -> dict[str, torch.Tensor]:
+        images: torch.Tensor,
+        embedder_list: List[str],
+        embedder_config: dict,
+) -> Dict[str, torch.Tensor]:
     """
     Create embeddings for a list of images using a list of embedders.
 
@@ -423,6 +432,7 @@ def create_image_embeddings(
         embedding = image_embedder.embed(images)
         embeddings[embedder_config[embedder_name]["embedding_name"]] = embedding
     return embeddings
+
 
 def _check_image_tensor_dimensions(images: torch.Tensor):
     """
@@ -445,3 +455,37 @@ def _check_image_tensor_dimensions(images: torch.Tensor):
             raise ValueError("Cannot interpret the dimensions of this image tensor."
                              "Check if the shape is (n_samples, n_channels, height, width).")
     return images
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--embedder", type=str, default="ResNet50Embedder")
+    parser.add_argument("--device", type=str, default="cuda")
+    args = parser.parse_args()
+    args.embedder = "BLIP2Embedder"
+    args.device = "cuda"
+    print('Embedder:', args.embedder)
+    embedder = embedder_from_spec(args.embedder, args.device)
+    print(embedder)
+
+    # images = torch.rand(32, 3, 224, 224)
+    with open("config.yaml", "r") as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
+
+    # load video,
+    video_path = './data/stimulus/short_downsampled.avi'
+    clip = VideoFileClip(video_path)
+    frames = clip.iter_frames()
+    images = np.array([frame for frame in frames])
+    audio = clip.audio
+
+    # images to tensor
+    images = torch.from_numpy(images)
+
+    results = embedder.embed(images)
+    # save results as text in csv files via panadas
+    import pandas as pd
+    dataframe = pd.DataFrame(results)
+    dataframe.to_csv("./annotations/blip_results.csv")
