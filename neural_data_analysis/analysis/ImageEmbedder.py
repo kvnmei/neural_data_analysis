@@ -12,7 +12,7 @@ Examples:
 
 """
 
-from typing import Protocol, List, Dict
+from typing import Dict, List, Protocol
 
 import numpy as np
 import torch
@@ -74,6 +74,7 @@ embedder_config = {
         "model": "openai/clip-vit-base-patch32",
         "processor": "openai/clip-vit-base-patch32",
     },
+    "blip2": {"embedding_name": "blip2", },
     "rgbhsvl": {"embedding_name": "rgbhsvl", },
     "gist": {"embedding_name": "gist", },
     "moten": {"embedding_name": "moten", },

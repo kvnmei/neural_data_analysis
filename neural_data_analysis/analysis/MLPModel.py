@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from typing import Protocol
 
 import lightning.pytorch as pl
 import matplotlib.pyplot as plt
@@ -88,8 +87,10 @@ class MLPModelWrapper:
             hparams: hyperparameters
         """
         self.hparams = hparams
-        if self.hparams["problem_type"] == "classification":
-            self.model = MLPClassifier(hparams)
+        if self.hparams["problem_type"] == "multi_class_classification":
+            self.model = MLPMultiClassClassifier(hparams)
+        elif self.hparams["problem_type"] == "binary_classification":
+            self.model = MLPBinaryClassifier(hparams)
         elif self.hparams["problem_type"] == "regression":
             self.model = MLPRegressor(hparams)
         else:
@@ -188,8 +189,7 @@ class MLPModelWrapper:
     def save(self, path):
         torch.save(self.model.state_dict(), path)
 
-
-class MLPClassifier(pl.LightningModule):
+class MLPBinaryClassifier(pl.LightningModule):
     """
     Methods:
         forward(self, x):
@@ -199,7 +199,123 @@ class MLPClassifier(pl.LightningModule):
     """
 
     def __init__(self, hparams):
-        super(MLPClassifier, self).__init__()
+        super(MLPBinaryClassifier, self).__init__()
+        self.params = hparams
+        num_layers = self.params["num_layers"]
+        hidden_dims = self.params["hidden_dims"]
+
+        # create using nn.Sequential
+        self.network = torch.nn.Sequential()
+        if num_layers == 1:
+            self.network.add_module(
+                "input",
+                torch.nn.Linear(self.params["input_dims"], self.params["output_dims"]),
+            )
+        else:
+            self.network.add_module(
+                "input", torch.nn.Linear(self.params["input_dims"], hidden_dims)
+            )
+            self.network.add_module("batchnorm", torch.nn.BatchNorm1d(hidden_dims))
+            self.network.add_module("relu", torch.nn.ReLU())
+            for i in range(num_layers - 2):
+                self.network.add_module(
+                    "hidden" + str(i), torch.nn.Linear(hidden_dims, hidden_dims)
+                )
+                self.network.add_module(
+                    "batchnorm" + str(i), torch.nn.BatchNorm1d(hidden_dims)
+                )
+                self.network.add_module("relu" + str(i), torch.nn.ReLU())
+            self.network.add_module(
+                "output", torch.nn.Linear(hidden_dims, self.params["output_dims"])
+            )
+        self.network.add_module("softmax", torch.nn.Softmax(dim=1))
+
+        # cross entropy loss
+        self.criterion = torch.nn.BCELoss()
+        self.train_losses = []
+        self.val_losses = []
+        self.train_mean_epoch_losses = []
+        self.val_mean_epoch_losses = []
+
+        # classification accuracy
+        self.accuracy = torchmetrics.classification.Accuracy(
+            task="binary", num_classes=self.params["output_dims"]
+        )
+        self.train_acc = []
+        self.val_acc = []
+        self.train_mean_epoch_acc = []
+        self.val_mean_epoch_acc = []
+
+    def forward(self, x):
+        return self.network(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.network(x)
+        loss = self.criterion(y_hat, y.long())
+        self.log(
+            "train_loss",
+            loss,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+        )
+        self.train_losses.append(loss.item())
+        predictions = torch.argmax(y_hat, dim=1)
+        acc = self.accuracy(predictions, y)
+        self.train_acc.append(acc.item())
+        return loss
+
+    def on_train_epoch_end(self) -> None:
+        # log the mean of the training metrics
+        self.train_mean_epoch_losses.append(torch.mean(torch.tensor(self.train_losses)))
+        self.train_mean_epoch_acc.append(torch.mean(torch.tensor(self.train_acc)))
+        # reset the training metrics after averaging them for the epoch
+        self.train_losses = []
+        self.train_acc = []
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.network(x)
+        loss = self.criterion(y_hat, y.long())
+        self.log(
+            "val_loss",
+            loss,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+        )
+        self.val_losses.append(loss.item())
+        predictions = torch.argmax(y_hat, dim=1)
+        acc = self.accuracy(predictions, y)
+        self.val_acc.append(acc.item())
+        return loss
+
+    def on_validation_epoch_end(self) -> None:
+        # log the mean of the validation metrics
+        self.val_mean_epoch_losses.append(torch.mean(torch.tensor(self.val_losses)))
+        self.val_mean_epoch_acc.append(torch.mean(torch.tensor(self.val_acc)))
+        # reset the validation metrics after averaging them for the epoch
+        self.val_losses = []
+        self.val_acc = []
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(
+            self.network.parameters(), lr=self.params["learning_rate"]
+        )
+
+
+class MLPMultiClassClassifier(pl.LightningModule):
+    """
+    Methods:
+        forward(self, x):
+        training_step(self, batch, batch_idx):
+        validation_step(self, batch, batch_idx):
+        configure_optimizers(self):
+    """
+
+    def __init__(self, hparams):
+        super(MLPMultiClassClassifier, self).__init__()
         self.params = hparams
         num_layers = self.params["num_layers"]
         hidden_dims = self.params["hidden_dims"]

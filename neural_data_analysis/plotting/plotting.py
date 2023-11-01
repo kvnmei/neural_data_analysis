@@ -2,6 +2,7 @@ import base64
 import io
 import os
 from pathlib import Path
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,7 +16,7 @@ from bokeh.transform import factor_cmap
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-from typing import List
+from sklearn.metrics import pairwise_distances
 
 
 def plot_scatter_with_images(
@@ -291,6 +292,10 @@ def pairwise_distance_heatmap(pw_dist_mat: np.ndarray, backend: str = "seaborn")
     Returns:
         None
     """
+    # make sure it's a pairwise distance matrix
+    if pw_dist_mat.shape[0] != pw_dist_mat.shape[1]:
+        print("Not a pairwise distance matrix. Calculating pairwise distances using Euclidean distance...")
+        pw_dist_mat = pairwise_distances(pw_dist_mat, metric="euclidean")
 
     if backend == "seaborn":
         pair_dist_df = pd.DataFrame(pw_dist_mat)
