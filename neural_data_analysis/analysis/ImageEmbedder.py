@@ -160,7 +160,7 @@ class CLIPEmbedder(ImageEmbedder, nn.Module):
         if 'numpy' in str(type(images)):
             images = torch.from_numpy(images)
         # to PIL image
-        images = images.permute(0, 3, 1, 2)
+        images = _check_image_tensor_dimensions(images)
         images = [torchvision.transforms.ToPILImage()(img) for img in images]
         images = self.processor(
             # TODO: change the text from "a" to ""

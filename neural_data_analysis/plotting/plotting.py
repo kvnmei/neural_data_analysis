@@ -18,6 +18,21 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
 
+"""
+Plotting functions
+
+Functions:
+    plot_scatter_with_images
+    plot_variance_explained
+    plot_ecdf
+    elbow_curve
+    pairwise_distance_heatmap
+    plot_tsne_projection
+        
+
+"""
+
+
 
 def plot_scatter_with_images(
     data_points: np.ndarray,
