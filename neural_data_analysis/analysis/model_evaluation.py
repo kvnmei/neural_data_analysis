@@ -1,21 +1,38 @@
-from typing import Dict, List, Tuple, Union
-
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Dict
 
 from neural_data_analysis.utils import average_across_iterations, reshape_into_2d
 
 
 def process_results_multiple_regression(
-    df,
+    df: pd.DataFrame,
     metrics: List[str] = ("r2", "corr"),
     model_eval_input_cols: dict = None,
+    by_feature: bool = True,
     avg_across_variables: bool = True,
 ) -> pd.DataFrame:
+    """
+    Given a dataframe with "ground_truth" and "predictions" columns,
+    calculate the model performance for each sample or feature.
+    Appends the metric scores to the input dataframe.
+
+    Args:
+        df (pd.DataFrame): dataframe containing the ground truth and predictions
+        metrics (list): list of metrics to compute between predictions and ground truth
+        model_eval_input_cols (dict): name of the column containing the ground truth and the predictions
+        gt_col: name of the column containing the ground truth
+        by_feature: if True, evaluate performance for each feature separately
+            if False, evaluate performance for each sample separately
+
+    Returns:
+        None, appends the metrics to the input df
+    """
     # calculate the model performance by computing a metric between the ground truth and the predictions
+    # by default, will look for columns named "ground_truth" and "predictions"
     if model_eval_input_cols is None:
         model_eval_input_cols = {
             "ground_truth": "ground_truth",
@@ -26,15 +43,18 @@ def process_results_multiple_regression(
     append_model_scores(
         df,
         metrics=metrics,
-        by_feature=True,
+        by_feature=by_feature,
         gt_col=model_eval_input_cols["ground_truth"],
         pred_col=model_eval_input_cols["predictions"],
     )
 
-    # calculate the mean of the metric across the features
+    # calculate the mean of the metric across the features or samples
     if avg_across_variables:
         for metric in metrics:
-            df[f"{metric}_mean"] = np.mean(np.stack(df[metric]), axis=1)
+            if by_feature:
+                df[f"{metric}_mean"] = np.mean(np.stack(df[metric]), axis=1)
+            else:
+                df[f"{metric}_mean"] = df[metric].apply(np.mean)
         metrics = [f"{metric}_mean" for metric in metrics]
 
     # average across the folds
@@ -49,7 +69,7 @@ def process_results_multiple_regression(
 
 def append_model_scores(
     df: pd.DataFrame,
-    metrics: Union[str, List[str]],
+    metrics: List[str],
     by_feature: bool = True,
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
@@ -87,7 +107,7 @@ def append_model_scores(
 def evaluate_model_performance(
     ground_truth: np.ndarray,
     predictions: np.ndarray,
-    metric: Tuple[str],
+    metric: List[str],
     by_feature=True,
 ) -> Dict[str, np.ndarray]:
     """

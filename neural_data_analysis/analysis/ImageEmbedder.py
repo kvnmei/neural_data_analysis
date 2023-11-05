@@ -28,11 +28,11 @@ from transformers import (AutoImageProcessor, AutoModelForObjectDetection, AutoP
 
 embedder_config = {
     "ResNet50Embedder": {
-        "embedding_name": "resnet",
+        "embedding_name": "ResNet50Embedder",
         "batch_size": 64,
     },
     "CLIPEmbedder": {
-        "embedding_name": "clip",
+        "embedding_name": "CLIPEmbedder",
         "batch_size": 512,
         "model": "openai/clip-vit-base-patch32",
         "processor": "openai/clip-vit-base-patch32",
