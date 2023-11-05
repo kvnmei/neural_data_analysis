@@ -113,11 +113,12 @@ class MLPModelWrapper:
         # TODO: create a variable expected_epochs, and check the expected number of batches to see what value
         #  I should give for check_val_every_n_epochs, relates to log_every_n_steps too
 
+        # TODO: distributed computing using two GPUs hangs... why?
         trainer = pl.Trainer(
             max_epochs=self.hparams["max_epochs"],
             num_sanity_val_steps=0,
-            gpus=-1,
-            distributed_backend="ddp"
+            accelerator="auto",
+            devices=1,
             # logger=None,
             # check_val_every_n_epoch=1,
         )
@@ -154,10 +155,10 @@ class MLPModelWrapper:
             trainer.fit(self.model, train_dataloader)
 
         # plot losses
-        if hasattr(self.model, "train_mean_losses"):
+        if hasattr(self.model, "train_mean_epoch_losses"):
             losses = {
-                "train": self.model.train_mean_losses,
-                "val": self.model.val_mean_losses,
+                "train": self.model.train_mean_epoch_losses,
+                "val": self.model.val_mean_epoch_losses,
             }
             plot_metrics(
                 losses,
@@ -167,10 +168,10 @@ class MLPModelWrapper:
             )
 
         # plot accuracies
-        if hasattr(self.model, "train_mean_acc"):
+        if hasattr(self.model, "train_mean_epoch_acc"):
             accuracies = {
-                "train": self.model.train_losses,
-                "val": self.model.val_losses,
+                "train": self.model.train_mean_epoch_acc,
+                "val": self.model.val_mean_epoch_acc,
             }
             plot_metrics(
                 accuracies,
@@ -228,10 +229,9 @@ class MLPBinaryClassifier(pl.LightningModule):
             self.network.add_module(
                 "output", torch.nn.Linear(hidden_dims, self.params["output_dims"])
             )
-        self.network.add_module("softmax", torch.nn.Softmax(dim=1))
 
         # cross entropy loss
-        self.criterion = torch.nn.BCELoss()
+        self.criterion = torch.nn.BCEWithLogitsLoss()
         self.train_losses = []
         self.val_losses = []
         self.train_mean_epoch_losses = []
@@ -252,7 +252,7 @@ class MLPBinaryClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.network(x)
-        loss = self.criterion(y_hat, y.long())
+        loss = self.criterion(y_hat, y)
         self.log(
             "train_loss",
             loss,
@@ -261,7 +261,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.train_losses.append(loss.item())
-        predictions = torch.argmax(y_hat, dim=1)
+        predictions = (torch.sigmoid(y_hat) > 0.5).float()
         acc = self.accuracy(predictions, y)
         self.train_acc.append(acc.item())
         return loss
@@ -277,7 +277,7 @@ class MLPBinaryClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.network(x)
-        loss = self.criterion(y_hat, y.long())
+        loss = self.criterion(y_hat, y)
         self.log(
             "val_loss",
             loss,
@@ -286,7 +286,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.val_losses.append(loss.item())
-        predictions = torch.argmax(y_hat, dim=1)
+        predictions = (torch.sigmoid(y_hat) > 0.5).float()
         acc = self.accuracy(predictions, y)
         self.val_acc.append(acc.item())
         return loss
