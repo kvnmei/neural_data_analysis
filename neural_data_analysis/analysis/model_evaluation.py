@@ -4,7 +4,7 @@ from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
-
+import itertools
 from neural_data_analysis.utils import average_across_iterations, reshape_into_2d
 
 
@@ -14,11 +14,12 @@ def process_results_multiple_regression(
     model_eval_input_cols: dict = None,
     by_feature: bool = True,
     avg_across_variables: bool = True,
+    shuffle_ground_truth: bool = False,
 ) -> pd.DataFrame:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
     calculate the model performance for each sample or feature.
-    Appends the metric scores to the input dataframe.
+    Appends the metric scores to the input dataframe in-place.
 
     Args:
         df (pd.DataFrame): dataframe containing the ground truth and predictions
@@ -37,6 +38,7 @@ def process_results_multiple_regression(
         model_eval_input_cols = {
             "ground_truth": "ground_truth",
             "predictions": "predictions",
+            "ground_truth_shuffled": "ground_truth_shuffled",
         }
 
     # this will modify the dataframe in place
@@ -47,6 +49,23 @@ def process_results_multiple_regression(
         gt_col=model_eval_input_cols["ground_truth"],
         pred_col=model_eval_input_cols["predictions"],
     )
+
+    # shuffle the ground_truth to get a baseline score
+    if shuffle_ground_truth:
+        np.random.seed(42)
+        df[model_eval_input_cols["ground_truth_shuffled"]] = df[model_eval_input_cols["ground_truth"]].apply(np.random.permutation)
+        metric_col_names = {metric: f"{metric}_shuffled" for metric in metrics}
+        append_model_scores(
+            df,
+            metrics=metrics,
+            by_feature=by_feature,
+            gt_col=model_eval_input_cols["ground_truth_shuffled"],
+            pred_col=model_eval_input_cols["predictions"],
+            metric_col_names=metric_col_names,
+        )
+        for metric in metric_col_names.keys():
+            metrics.append(f"{metric_col_names[metric]}")
+
 
     # calculate the mean of the metric across the features or samples
     if avg_across_variables:
@@ -73,11 +92,12 @@ def append_model_scores(
     by_feature: bool = True,
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
+    metric_col_names: dict = None
 ) -> None:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
     calculate the model performance for each sample or feature.
-    Appends the metric scores to the input dataframe.
+    Appends the metric scores to the input dataframe in place.
 
     Args:
         df: dataframe containing the ground truth and predictions
@@ -100,7 +120,10 @@ def append_model_scores(
         )
         scores.append(row_score)
     for metric in metrics:
-        df[metric] = [score[metric] for score in scores]
+        if metric_col_names is not None:
+            df[metric_col_names[metric]] = [score[metric] for score in scores]
+        else:
+            df[metric] = [score[metric] for score in scores]
 
 
 # noinspection GrazieInspection

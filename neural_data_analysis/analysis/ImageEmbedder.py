@@ -28,11 +28,11 @@ from transformers import (AutoImageProcessor, AutoModelForObjectDetection, AutoP
 
 embedder_config = {
     "ResNet50Embedder": {
-        "embedding_name": "ResNet50Embedder",
+        "embedding_name": "resnet",
         "batch_size": 64,
     },
     "CLIPEmbedder": {
-        "embedding_name": "CLIPEmbedder",
+        "embedding_name": "clip",
         "batch_size": 512,
         "model": "openai/clip-vit-base-patch32",
         "processor": "openai/clip-vit-base-patch32",
@@ -64,22 +64,10 @@ embedder_config = {
         "embedding_description": "Vision Transformer Base 16",
         "batch_size": 64,
     },
-    "resnet": {
-        "embedding_name": "resnet",
-        "batch_size": 64,
-    },
-    "clip": {
-        "embedding_name": "clip",
-        "batch_size": 512,
-        "model": "openai/clip-vit-base-patch32",
-        "processor": "openai/clip-vit-base-patch32",
-    },
-    "blip2": {"embedding_name": "blip2", },
     "rgbhsvl": {"embedding_name": "rgbhsvl", },
     "gist": {"embedding_name": "gist", },
     "moten": {"embedding_name": "moten", },
     "face_regressors": {"embedding_name": "face_regressors", },
-
 }
 
 
