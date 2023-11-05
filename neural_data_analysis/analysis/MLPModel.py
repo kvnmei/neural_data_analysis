@@ -59,7 +59,7 @@ class MLPModel:
             "learning_rate": self.config["ExperimentRunner"]["MLPModel"]["lr"],
             "batch_size": self.config["ExperimentRunner"]["MLPModel"]["batch_size"],
             "max_epochs": self.config["ExperimentRunner"]["MLPModel"]["max_epochs"],
-            "problem_type": self.config["ExperimentRunner"]["MLPModel"]["problem_type"],
+            "problem_type": self.config["ExperimentRunner"]["problem_type"],
         }
         model = MLPModelWrapper(hparams)
         return model
