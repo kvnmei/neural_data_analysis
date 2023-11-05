@@ -557,7 +557,7 @@ def plot_metrics(
     plt.plot(values["train"], label="train")
     plt.plot(values["val"], label="val")
     plt.xlabel("Epoch")
-    plt.ylabel("Loss")
+    plt.ylabel(f"{metric}")
     plt.legend()
     plt.tight_layout()
     plt.savefig(plots_dir / f"{run_name}_train_val_{metric}.png")
