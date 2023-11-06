@@ -15,6 +15,12 @@ def process_results_multiple_regression(
     by_feature: bool = True,
     avg_across_variables: bool = True,
     shuffle_ground_truth: bool = False,
+    columns_to_keep: list[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
 ) -> pd.DataFrame:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
@@ -81,6 +87,7 @@ def process_results_multiple_regression(
         df,
         iter_var="fold",
         target_var=metrics,
+        columns_to_keep=columns_to_keep,
     )
 
     return averaged_df
