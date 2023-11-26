@@ -10,7 +10,8 @@ from .model_evaluation import (
 )
 from .Neuron import Neuron
 from .population import dataframe_from_cells, subset_cells
-from .single_neuron import calc_firing_rates, compute_psth
+from .single_neuron import calc_firing_rates
+from ..plotting.raster_psth import compute_psth
 from .MLPModel import MLPModel, MLPMultiClassClassifier, MLPBinaryClassifier, MLPRegressor
 
 __version__ = "0.0.1"

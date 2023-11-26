@@ -2,7 +2,7 @@ from .model_results import (model_performance_by_brain_area, model_performance_b
                             plot_model_predictions, plot_object_detection_result)
 from .plotting import pairwise_distance_heatmap, plot_ecdf, plot_scatter_with_images, plot_tsne_projection, \
     plot_variance_explained
-from .raster_psth import plot_raster_psth
+from .raster_psth import plot_raster_psth2, plot_raster_psth, compute_psth
 
 __version__ = "0.0.1"
 __description__ = "A package for plotting functions."
