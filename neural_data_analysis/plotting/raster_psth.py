@@ -1,256 +1,18 @@
-from typing import List
-
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import seaborn as sns
 import pandas as pd
 
+import bokeh.layouts
 from bokeh.plotting import figure, show, output_file
-from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Range1d
-
-
-def plot_raster_psth(raster_df, psth_df, plot_params, backend="bokeh"):
-    """
-    Plots a raster and PSTH for spikes to an event. All raster/PSTH are for a single neuron's firing rate.
-
-    Args:
-        raster_df (pd.DataFrame): Each row is an event.
-            Expected columns:
-                event_id (int): The event ID.
-                spike_times (np.ndarray): The relative spike time of the neuron within the window of interest around
-                 the event time.
-                category (str): The category of the event.
-                color (str): Color to plot for the category.
-        psth_df (pd.DataFrame): Each row is a category.
-            Expected columns:
-                bin_centers (float): The center of the bin in the PSTH.
-                firing_rate (float): The firing rate of the neuron in the bin.
-                category (str): The name of the category.
-                color (str): Color to plot for the category.
-        plot_params (dict): A dictionary of parameters for plotting.
-            Expected keys:
-                raster_title (str): The title of the raster plot.
-                psth_title (str): The title of the PSTH plot.
-                xlabel (str): The x-axis label.
-                ylabel (str): The y-axis label.
-                save_path (str): The path to save the plot to.
-                figsize (tuple): The size of the figure.
-                colors (list): The colors to use for the raster plot.
-
-        backend (str): What plotting package to use for plotting. Options are "bokeh"...
-
-    Returns:
-
-    """
-    if backend == "bokeh":
-        # Flatten the data for Bokeh plotting
-        flattened_spike_times = []
-        flattened_event_ids = []
-        flattened_colors = []
-        flattened_categories = []
-        for _, raster_row in raster_df.iterrows():
-            for spike_time in raster_row['spike_times']:
-                flattened_spike_times.append(spike_time)
-                flattened_event_ids.append(raster_row['new_event_id'])
-                flattened_colors.append(raster_row['color'])
-                flattened_categories.append(raster_row['category'])
-
-        # Create a ColumnDataSource with flattened data
-        source = ColumnDataSource({
-            'spike_times': flattened_spike_times,
-            'event_id': flattened_event_ids,
-            'color': flattened_colors,
-            'category': flattened_categories
-        })
-
-        min_event_id = min(flattened_event_ids)
-        max_event_id = max(flattened_event_ids)
-
-        # Create figure for raster plot
-        raster_plot = figure(title=plot_params.get("raster_title", "Raster Plot"),
-                             x_axis_label=plot_params.get("xlabel", "Time (s)"),
-                             y_axis_label=plot_params.get("ylabel", "Event"),
-                            width=plot_params.get('plot_width', 800),
-                            height=plot_params.get('plot_height', 400),
-                             y_range=Range1d(start=max_event_id + 1, end=min_event_id - 1),
-                             )
-
-        # Plot using the new source
-        raster_plot.dash('spike_times', 'event_id', source=source, color='color', size=15, angle=90,
-                         angle_units="deg", legend_field="category", line_width=2)
-
-        # Adjust the legend
-        raster_plot.legend.title = 'Category'
-        raster_plot.legend.orientation = "vertical"
-        raster_plot.legend.location = "top_right"
-        raster_plot.add_layout(raster_plot.legend[0], 'right')
-        psth_plot = row(raster_plot)
-
-        # Create figure for PSTH plot
-        psth_plot = figure(title=plot_params.get("psth_title", "PSTH"),
-                           x_axis_label=plot_params.get("xlabel", "Time (s)"),
-                           y_axis_label="Firing rate (spikes/s)",
-                           width=plot_params.get('plot_width', 800),
-                           height=plot_params.get('plot_height', 400),
-                           )
-
-        rows = []
-        for _, psth_row in psth_df.iterrows():
-            for bin_center, firing_rate in zip(psth_row['bin_centers'], psth_row['firing_rate']):
-                rows.append({
-                    'bin_center': bin_center,
-                    'firing_rate': firing_rate,
-                    'category': psth_row['category'],
-                    'color': psth_row['color']
-                })
-
-        expanded_psth_df = pd.DataFrame(rows)
-        for category, group in expanded_psth_df.groupby('category'):
-            source = ColumnDataSource(group)
-            psth_plot.line('bin_center', 'firing_rate', source=source, line_width=2, color=group['color'].iloc[0], legend_label=str(category))
-
-        psth_plot.legend.title = 'Category'
-        psth_plot.legend.orientation = "vertical"
-        psth_plot.legend.location = "top_right"
-
-        psth_plot.add_layout(psth_plot.legend[0], 'right')
-        psth_plot = row(psth_plot)
-
-        # Combine plots vertically
-        combined = column(raster_plot, psth_plot)
-
-        # Output to file or notebook
-        output_file(plot_params.get('save_path', "raster_psth_plot.html"))
-
-        show(combined)
-
-
-
-def plot_raster_psth2(spike_times, psth, bin_centers, time_window, bin_size, step_size, plot_params, backend: str= "seaborn"):
-    """
-    Plots a raster and PSTH for spikes to an event. All raster/PSTH are for a single neuron's firing rate.
-
-    Args:
-        spike_times (np.ndarray): (n_events, n_spikes)
-            For every event, the relative spike times of the neuron within the window of interest around the event time.
-        psth (np.ndarray): (n_bins,)
-            The PSTH for the neuron. For every bin, the firing rate of the neuron.
-        bin_centers (np.ndarray): The center of each bin in the PSTH.
-        time_window (list): The time window around the event time to plot the raster/PSTH.
-        bin_size (float): The size of each bin in the PSTH.
-        step_size (float): The step size between each bin in the PSTH.
-        plot_params (dict): A dictionary of parameters for plotting.
-            Expected keys:
-                title (str): The title of the plot.
-                subtitle (str): The subtitle of the plot.
-                xlabel (str): The x-axis label.
-                ylabel (str): The y-axis label.
-                save_path (str): The path to save the plot to.
-                figsize (tuple): The size of the figure.
-                colors (list): The colors to use for the raster plot.
-        backend (str): What plotting package to use for plotting. Options are "seaborn" and "bokeh".
-
-    Returns:
-        None
-
-    Example:
-        spike_times =
-        plot_raster_psth(
-            spike_times=spike_times,
-            psth=psth,
-            time_window=[-1, 1],
-            bin_size=0.1,
-            step_size=0.05,
-            plot_params=plot_params,
-            backend="seaborn",
-        )
-    """
-
-    # this code is to handle the case where there is only one event
-    if not isinstance(spike_times[0], np.ndarray):
-        spike_times = np.array([spike_times])
-
-    total_events = len(spike_times)
-    assert len(bin_centers) == len(psth), "Length of bins and PSTH must be the same."
-
-    if backend == "seaborn":
-        sns.set()
-        sns.set_style("white")
-        sns.set_context("paper")
-
-        fig, axes = plt.subplots(
-            figsize=plot_params.get("figsize", (12, 8)),
-            nrows=2,
-            sharex=True,
-            gridspec_kw={"height_ratios": [3, 1]},
-        )
-        fig.suptitle(
-            f"{plot_params.get('title', 'Raster Plot with PSTH')}\n"
-            f"{plot_params.get('subtitle', None)}\nBin size {bin_size} s, Step size {step_size} s"
-        )
-        plt.subplots_adjust(top=0.85)
-
-        axes[0].eventplot(spike_times, linewidths=0.5)
-        axes[0].set_yticks(np.arange(total_events))
-        axes[0].set_yticklabels(np.arange(1, total_events + 1))
-        # ax[0].set_yticklabels(np.arange(1, total_events + 1)[::-1]) # for reverse order
-        axes[0].set_xlabel(plot_params.get("xlabel", "Time (s)"))
-        axes[0].set_ylabel(plot_params.get("ylabel", "Event"))
-        # ax[0].set_title(plot_params.get('title', "Raster Plot with PSTH"))
-
-        axes[1].plot(
-            bin_centers,
-            psth,
-            linewidth=1,
-        )
-        axes[1].set_xlim([time_window[0], time_window[1]])
-        axes[1].set_xlabel("Time (s)")
-        axes[1].set_ylabel("Firing rate (spikes/s)")
-
-        # plot the stimulus time as a vertical line
-        axes[0].axvline(x=0, color="black", linestyle="--")
-        axes[1].axvline(x=0, color="black", linestyle="--")
-
-        # for time in plot_params["scene_cut_times"]:
-        #     ax[1].axvline(x=time, color="green", linestyle="-", linewidth=0.5)
-        #
-        # for time in plot_params["scene_change_times"]:
-        #     ax[1].axvline(x=time, color="orange", linestyle="-", linewidth=0.75)
-
-        plt.savefig(f"{plot_params['save_path']}", dpi=300, bbox_inches="tight")
-        plt.close(fig)
-    elif backend == "bokeh":
-        # Prepare color map for event groups
-        unique_groups = np.unique(event_groups)
-        colors = plot_params.get('colors', ['blue', 'green', 'red', 'purple', 'orange', 'yellow'])
-        color_map = {group: colors[i % len(colors)] for i, group in enumerate(unique_groups)}
-
-        # Create Bokeh figure for raster plot
-        p = figure(title=plot_params.get("title", "Raster Plot with PSTH"),
-                   x_axis_label=plot_params.get("xlabel", "Time (s)"),
-                   y_axis_label=plot_params.get("ylabel", "Event"))
-
-        # Plot each event in the raster plot
-        for i, (event, group) in enumerate(zip(spike_times, event_groups)):
-            group_color = color_map[group]
-            p.circle(event, np.full(event.shape, i), size=5, color=group_color, legend_label=str(group))
-
-        # Plot PSTH (You might need to adjust this part according to your PSTH data structure)
-        p.line(np.arange(time_window[0], time_window[1], step_size), psth, line_width=2)
-
-        p.legend.title = 'Event Groups'
-        p.legend.location = "top_right"
-
-        # Output to static HTML file (or use output_notebook() for inline plotting)
-        output_file(plot_params.get('save_path', "raster_psth_plot.html"))
-
-        show(p)
+from bokeh.layouts import column
+from bokeh.models import ColumnDataSource, Range1d, HoverTool
 
 
 def compute_psth(
     spike_times: np.ndarray,
-    time_range: List[float],
+    time_range: list[float],
     bin_size: float = 1.0,
     step_size: float = 0.5,
 ) -> np.ndarray:
@@ -260,7 +22,7 @@ def compute_psth(
     The spike times and time range should be relative to the same type of event (e.g., image onset).
 
     Args:
-        spike_times (numpy array): shape (n_neurons, n_spike_times)
+        spike_times (np.ndarray): shape (n_neurons, n_spike_times)
             array of single neuron spike times, relative to event
         time_range (list[float]): [start, end]
             start and end time for PSTH, relative to event
@@ -294,3 +56,377 @@ def compute_psth(
             psth[j] += spike_count
     psth /= total_events * bin_size
     return psth
+
+
+def compute_psth_per_category(
+    raster_df, time_range: list[float], bin_size: float = 1, step_size: float = 0.5
+) -> dict:
+    """
+    Compute the PSTH values for each category over the time range,
+    using a sliding window of size bin_size and step size step_size.
+
+    Args:
+        raster_df (pd.DataFrame): DataFrame with columns 'event_id', 'spike_times', 'category', 'color'
+        time_range (list[float]): [start, end] start and end time for PSTH, relative to event
+        bin_size (float): size of the window to calculate the firing rate over
+        step_size (float): step size with which to move the sliding window
+
+    Returns:
+        dict: A dictionary with categories as keys and PSTH arrays as values
+    """
+
+    # Get unique categories
+    unique_categories = raster_df["category"].unique()
+
+    # Initialize a dictionary to hold PSTH data for each category
+    psth_per_category = {}
+
+    # Iterate over each category
+    for category in unique_categories:
+        # Extract spike times for the current category
+        category_spike_times = np.array(
+            raster_df[raster_df["category"] == category]["spike_times"].to_list()
+        )
+
+        # Compute PSTH for the current category
+        psth = compute_psth(category_spike_times, time_range, bin_size, step_size)
+
+        # Store the result in the dictionary
+        psth_per_category[category] = psth
+
+    return psth_per_category
+
+
+def plot_raster_psth(
+    raster_df: pd.DataFrame,
+    psth_df: pd.DataFrame,
+    plot_params: dict,
+    backend: str = "bokeh",
+    output_plot=False,
+) -> None:
+    """
+    Plots a raster and PSTH for spikes to an event. All raster/PSTH are for a single neuron's firing rate.
+
+    NOTE: This function can be used to plot population activity as well. Instead of every row being a single neuron's
+    activity for a single even, each row would be a neuron's activity for the same event.
+    The PSTH would be the average firing rate across neurons for each bin, and may be grouped by category that neurons
+     belong to (e.g., by brain region).
+
+    Args:
+        raster_df (pd.DataFrame): Each row is an event or trial.
+            Expected columns:
+                event_id (int): The event ID.
+                spike_times (np.ndarray): (n_spikes,)
+                    The relative spike time of the neuron within the window of interest around
+                    the event time.
+                category (str): The category of the event/trial.
+                color (str): Color to plot for the category.
+        psth_df (pd.DataFrame): Each row is a PSTH for a category of trials.
+            Expected columns:
+                bin_centers (list[float]): The center of the bin in the PSTH.
+                firing_rate (float): The firing rate of the neuron in the bin.
+                category (str): The name of the category.
+                color (str): Color to plot for the category.
+        plot_params (dict): A dictionary of parameters for plotting.
+            Expected keys:
+                raster_title (str): The title of the raster plot.
+                psth_title (str): The title of the PSTH plot.
+                xlabel (str): The x-axis label.
+                ylabel (str): The y-axis label.
+                save_path (str): The path to save the plot to.
+                figsize (tuple): The size of the figure.
+
+        backend (str): What plotting package to use for plotting. Options are "bokeh"...
+
+    Returns:
+
+    """
+    if backend == "bokeh":
+        # Flatten the data for Bokeh plotting from wide format to long format
+        raster_data_long = []
+        for _, raster_row in raster_df.iterrows():
+            for spike_time in raster_row["spike_times"]:
+                raster_data_long.append(
+                    {
+                        "spike_times": spike_time,
+                        "event_id": raster_row["event_id"],
+                        "color": raster_row["color"],
+                        "category": raster_row["category"],
+                    }
+                )
+        raster_df_long = pd.DataFrame(raster_data_long)
+        source = ColumnDataSource(raster_df_long)
+
+        # Create figure for raster plot
+        min_event_id = min(raster_df_long["event_id"])
+        max_event_id = max(raster_df_long["event_id"])
+        raster_plot = figure(
+            title=plot_params.get("raster_title", "Raster Plot"),
+            x_axis_label=plot_params.get("xlabel", "Time (s)"),
+            y_axis_label=plot_params.get("ylabel", "Event"),
+            width=plot_params.get("plot_width", 800),
+            height=plot_params.get("plot_height", 1600),
+            y_range=Range1d(start=max_event_id + 1, end=min_event_id - 1),
+        )
+
+        # Plot raster
+        raster_plot.dash(
+            x="spike_times",
+            y="event_id",
+            source=source,
+            color="color",
+            size=15,
+            angle=90,
+            angle_units="deg",
+            legend_field="category",
+            line_width=2,
+        )
+
+        # Adjust the legend
+        raster_plot.legend.title = "Category"
+        raster_plot.legend.orientation = "vertical"
+        raster_plot.legend.location = "top_right"
+        raster_plot.add_layout(raster_plot.legend[0], "right")
+        raster_plot = bokeh.layouts.row(raster_plot)
+
+        # Create figure for PSTH plot
+        psth_plot = figure(
+            title=plot_params.get("psth_title", "PSTH"),
+            x_axis_label=plot_params.get("xlabel", "Time (s)"),
+            y_axis_label="Firing rate (spikes/s)",
+            width=plot_params.get("plot_width", 800),
+            height=plot_params.get("plot_height", 400),
+        )
+
+        # Flatten from a wide format (where each row contains the entire series of bin centers and firing rates for a
+        # category) to a long format (where each row represents a single data point with a bin center, firing rate,
+        # category, and color).
+        psth_data_long = []
+        for i, psth_row in psth_df.iterrows():
+            for bin_center, firing_rate in zip(
+                psth_row["bin_centers"], psth_row["firing_rate"]
+            ):
+                psth_data_long.append(
+                    {
+                        "bin_center": bin_center,
+                        "firing_rate": firing_rate,
+                        "category": psth_row["category"],
+                        "color": psth_row["color"],
+                    }
+                )
+        psth_df_long = pd.DataFrame(psth_data_long)
+
+        # Plot PSTH
+        for color, group in psth_df_long.groupby("color"):
+            source = ColumnDataSource(group)
+            psth_plot.line(
+                x="bin_center",
+                y="firing_rate",
+                source=source,
+                line_width=2,
+                color=color,
+                legend_label=str(group["category"].iloc[0]),
+            )
+
+        # Adjust the legend
+        psth_plot.legend.title = "Category"
+        psth_plot.legend.orientation = "vertical"
+        psth_plot.legend.location = "top_right"
+        psth_plot.add_layout(psth_plot.legend[0], "right")
+        psth_plot = bokeh.layouts.row(psth_plot)
+
+        if output_plot:
+            # Combine plots vertically
+            combined = column(raster_plot, psth_plot)
+            # Output to file or notebook
+            output_file(f"{plot_params.get('save_path', 'raster_psth_plot')}.html")
+            show(combined)
+        else:
+            return raster_plot, psth_plot
+
+    elif backend == "seaborn":
+        sns.set(style="white", context="paper")
+
+        # Creating subplots
+        # noinspection PyTypeChecker
+        fig, axes = plt.subplots(
+            figsize=plot_params.get("figsize", (12, 8)),
+            nrows=2,
+            sharex=True,
+            gridspec_kw={"height_ratios": [3, 1]},
+        )
+
+        # Raster plot
+        axes[0].eventplot(
+            data=raster_df,
+            positions="spike_times",
+            lineoffsets=1,
+            linelengths=1,
+            linewidths=2,
+            colors="color",
+        )
+        axes[0].set_ylabel(plot_params.get("ylabel", "Event"))
+        axes[0].set_title(plot_params.get("raster_title", "Raster Plot"))
+        axes[0].set_yticks(np.arange(len(raster_df)))
+        # axes[0].set_yticklabels(np.arange(1, len(raster_df) + 1))
+        axes[0].set_yticklabels(
+            np.arange(1, len(raster_df) + 1)[::-1]
+        )  # for reverse order
+
+        unique_categories = (
+            raster_df[["category", "color"]].drop_duplicates().sort_values("category")
+        )
+        # Creating custom legend for the raster plot
+        legend_handles = [
+            mpatches.Patch(color=row["color"], label=f"{row['category']}")
+            for _, row in unique_categories.iterrows()
+        ]
+
+        axes[0].legend(
+            handles=legend_handles,
+            title="Category",
+            bbox_to_anchor=(1.05, 1),
+            loc="upper left",
+        )
+
+        # PSTH plot
+        for _, psth_row in psth_df.iterrows():
+            axes[1].plot(
+                psth_row["bin_centers"],
+                psth_row["firing_rate"],
+                label=str(psth_row["category"]),
+                color=psth_row["color"],
+            )
+        axes[1].set_xlabel(plot_params.get("xlabel", "Time (s)"))
+        axes[1].set_ylabel("Firing rate (spikes/s)")
+        axes[1].set_title(plot_params.get("psth_title", "PSTH"))
+        axes[1].legend(title="Category", bbox_to_anchor=(1.05, 1), loc="upper left")
+
+        fig.suptitle(
+            f"{plot_params.get('title', 'Raster Plot with PSTH')}\n"
+            f"{plot_params.get('subtitle', None)}\n"
+        )
+        # plot the stimulus time as a vertical line
+        axes[0].axvline(x=0, color="black", linestyle="--")
+        axes[1].axvline(x=0, color="black", linestyle="--")
+
+        # Adjust layout and save plot
+        plt.tight_layout()
+        plt.savefig(f"{plot_params.get('save_path', 'raster_psth_plot')}.png", dpi=300)
+        plt.close(fig)
+
+        # for time in plot_params["scene_cut_times"]:
+        #     ax[1].axvline(x=time, color="green", linestyle="-", linewidth=0.5)
+        #
+        # for time in plot_params["scene_change_times"]:
+        #     ax[1].axvline(x=time, color="orange", linestyle="-", linewidth=0.75)
+
+
+def plot_gantt_bar_chart(
+    gantt_df: pd.DataFrame,
+    plot_params: dict,
+    backend: str = "bokeh",
+    output_plot: bool = False,
+) -> None:
+    """
+    Plot a Gantt bar chart with Bokeh.
+
+    Args:
+        gantt_df (pd.DataFrame): Each row is a time point.
+            Expected columns:
+                time_index (int): The index of the time point.
+                category (str): The category of the time point.
+        plot_params (dict): A dictionary of parameters for plotting.
+            Expected keys:
+                title (str): The title of the plot.
+                subtitle (str): The subtitle of the plot.
+                xlabel (str): The x-axis label.
+                ylabel (str): The y-axis label.
+                save_path (str): The path to save the plot to.
+                figsize (tuple): The size of the figure.
+                colors (list): The colors to use for the raster plot.
+        backend (str): The plotting package to use.
+
+    Returns:
+
+    """
+    if backend == "bokeh":
+        df = gantt_df.copy()
+        # Determine where category changes occur
+        df["change"] = df["category"].ne(df["category"].shift())
+        df["start_time"] = df["time_index"]
+        df["end_time"] = (
+            df["time_index"].shift(-1).fillna(df["time_index"].iloc[-1] + 1)
+        )
+
+        # Filter rows where category changes
+        blocks = df[df["change"]].copy()
+        # end rows are the times right before the category changes, so shift the "change" column by -1 and
+        # get those times
+        end_rows = df[df["change"].shift(-1).fillna(True)].copy()
+        blocks["end_time"] = end_rows["end_time"].values
+
+        unique_categories = blocks["category"].unique()
+        category_y_positions = {
+            cat: i for i, cat in enumerate(sorted(unique_categories), start=0)
+        }
+        blocks["y_bottom"] = blocks["category"].map(category_y_positions) - 0.4
+        blocks["y_top"] = (
+            blocks["y_bottom"] + 0.8
+        )  # Adjust the height of the bars as needed
+
+        # Map categories to colors (adjust as needed)
+        color_map = {0: "blue", 1: "green", 2: "red"}
+        blocks["color"] = blocks["category"].map(color_map)
+
+        # Creating a ColumnDataSource
+        source = ColumnDataSource(blocks)
+
+        # Create the figure
+        p = figure(
+            height=350,
+            title=plot_params.get("title", "Intervals Bar Chart"),
+            toolbar_location=None,
+            tools="",
+            y_range=(-1, len(unique_categories)),
+            x_axis_label=plot_params.get("xlabel", "Time Index"),
+            y_axis_label=plot_params.get("ylabel", "Category"),
+        )
+
+        # Add quad glyphs
+        p.quad(
+            source=source,
+            left="start_time",
+            right="end_time",
+            bottom="y_bottom",
+            top="y_top",
+            fill_color="color",
+            line_color="black",
+        )
+
+        # Customizing the plot
+        # p.yaxis.ticker = list(
+        #     map(lambda x: x + 0.4, list(category_y_positions.values()))
+        # )
+        p.yaxis.ticker = list(category_y_positions.values())
+        p.yaxis.major_label_overrides = {
+            v: f"Category {k}" for k, v in category_y_positions.items()
+        }
+        p.xgrid.grid_line_color = None
+
+        # Adding hover tool
+        hover = HoverTool(
+            tooltips=[
+                ("Category", "@category"),
+                ("Start Frame", "@start_time"),
+                ("End Frame", "@end_time"),
+            ]
+        )
+        p.add_tools(hover)
+
+        if output_plot:
+            # Output to file
+            output_file(f"{plot_params.get('save_path', 'gantt_plot')}.html")
+            show(p)
+        else:
+            return p

@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
 import itertools
 from neural_data_analysis.utils import average_across_iterations, reshape_into_2d
-
+from sklearn.metrics import balanced_accuracy_score
 
 def process_results_multiple_regression(
     df: pd.DataFrame,
@@ -60,10 +60,13 @@ def process_results_multiple_regression(
     if shuffle_ground_truth:
         np.random.seed(42)
         df[model_eval_input_cols["ground_truth_shuffled"]] = df[model_eval_input_cols["ground_truth"]].apply(np.random.permutation)
-        metric_col_names = {metric: f"{metric}_shuffled" for metric in metrics}
+        # TODO: fix this for cases when I don't want accuracy
+        shuffled_metrics = ["balanced_accuracy"]
+        # what the shuffled score will be labeled as in the dataframe
+        metric_col_names = {metric: f"{metric}_shuffled" for metric in shuffled_metrics}
         append_model_scores(
             df,
-            metrics=metrics,
+            metrics=shuffled_metrics,
             by_feature=by_feature,
             gt_col=model_eval_input_cols["ground_truth_shuffled"],
             pred_col=model_eval_input_cols["predictions"],
@@ -137,7 +140,7 @@ def append_model_scores(
 def evaluate_model_performance(
     ground_truth: np.ndarray,
     predictions: np.ndarray,
-    metric: List[str],
+    metric: list[str],
     by_feature=True,
 ) -> Dict[str, np.ndarray]:
     """
@@ -223,7 +226,6 @@ def evaluate_model_performance(
 
 def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
     """
-
     Args:
         ground_truth (np.array):
         predictions (np.array):
@@ -244,6 +246,8 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
         ).item()
     elif (metric == "accuracy") or (metric == "acc"):
         score = np.mean(ground_truth == predictions)
+    elif (metric == "balanced_accuracy") or (metric == "balanced_acc"):
+        score = balanced_accuracy_score(ground_truth, predictions)
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score
