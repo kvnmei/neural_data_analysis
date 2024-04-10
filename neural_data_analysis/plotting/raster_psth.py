@@ -376,7 +376,22 @@ def plot_gantt_bar_chart(
         )  # Adjust the height of the bars as needed
 
         # Map categories to colors (adjust as needed)
-        color_map = {0: "blue", 1: "green", 2: "red"}
+        # color_map = {0: "blue", 1: "green", 2: "red"}
+        color_map = {
+            0: "#1f77b4",  # Blue
+            1: "#ff7f0e",  # Orange
+            2: "#2ca02c",  # Green
+            3: "#d62728",  # Red
+            4: "#9467bd",  # Purple
+            5: "#8c564b",  # Brown
+            6: "#e377c2",  # Pink
+            7: "#7f7f7f",  # Gray
+            8: "#bcbd22",  # Olive
+            9: "#17becf",  # Cyan
+            10: "#1a55FF",  # Deep Blue
+            11: "#FF5733",  # Deep Orange
+        }
+
         blocks["color"] = blocks["category"].map(color_map)
 
         # Creating a ColumnDataSource

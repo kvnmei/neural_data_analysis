@@ -1,7 +1,13 @@
 from .Electrode import Electrode
 from .Event import Event
-from .ImageEmbedder import (CLIPEmbedder, create_image_embeddings, embedder_config, embedder_from_spec,
-                            ResNet50Embedder)
+from .embedder_utils import embedder_config, embedder_from_spec, create_image_embeddings
+from .ImageEmbedder import (
+    CLIPEmbedder,
+    ResNet50Embedder,
+    ImageEmbedder,
+    DINOEmbedder,
+)
+
 from .LinearModel import LinearModel
 from .model_evaluation import (
     append_model_scores,
@@ -11,8 +17,14 @@ from .model_evaluation import (
 from .Neuron import Neuron
 from .population import dataframe_from_cells, subset_cells
 from .single_neuron import calc_firing_rates
-from ..plotting.raster_psth import compute_psth
-from .MLPModel import MLPModel, MLPMultiClassClassifier, MLPBinaryClassifier, MLPRegressor
+
+from .MLPModel import (
+    MLPModel,
+    MLPMultiClassClassifier,
+    MLPBinaryClassifier,
+    MLPRegressor,
+)
+from .TextEmbedder import SGPTEmbedder, TextEmbedder
 
 __version__ = "0.0.1"
 __description__ = "A package for the data analysis pipeline of data validation, data wrangling, and hypothesis testing."

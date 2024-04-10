@@ -1,12 +1,13 @@
 from .analysis import (
+    embedder_config,
+    embedder_from_spec,
     append_model_scores,
     calc_firing_rates,
     CLIPEmbedder,
     create_image_embeddings,
     dataframe_from_cells,
+    DINOEmbedder,
     Electrode,
-    embedder_config,
-    embedder_from_spec,
     evaluate_model_performance,
     Event,
     LinearModel,
@@ -18,7 +19,10 @@ from .analysis import (
     process_results_multiple_regression,
     ResNet50Embedder,
     subset_cells,
+    TextEmbedder,
+    SGPTEmbedder,
 )
+
 from .plotting import (
     model_performance_by_brain_area,
     model_performance_by_time,
@@ -28,7 +32,7 @@ from .plotting import (
     plot_model_predictions,
     plot_object_detection_result,
     plot_scatter_with_images,
-    plot_tsne_projection,
+    plot_tsne_projections,
     plot_variance_explained,
     plot_raster_psth,
     compute_psth,
@@ -45,7 +49,7 @@ from .utils import (
     remove_lateralization,
 )
 
-__author__ = "Kevin Mei"
-__email__ = "kmei@caltech.edu"
+__author__ = "Kevin J. M. Le"
+__email__ = "kvnjmle@caltech.edu"
 __version__ = "0.0.1"
 __all__ = [f for f in dir() if not f.startswith("_")]

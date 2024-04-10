@@ -69,6 +69,7 @@ def create_order_index(array1: list, array2: list):
         array2 (list): list of values to order by
 
     Example:
+        index = create_order_index(array1, array2)
         array2 = [array1[i] for i in index]
         OR
         np.array(array2) == np.array(array1)[index]
@@ -137,7 +138,7 @@ def average_across_iterations(
 
     averaged_result_list_dict = []
     n_iter = len(np.unique(df[iter_var]))
-    # WARNING: function will not work if the iter_var is not repeated consecutive order in the dataframe
+    # WARNING: function will not work if the iter_var is not repeated in consecutive order in the dataframe
     for i in np.arange(0, len(df), n_iter):
         _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
         averaged_result_dict = {}
@@ -157,3 +158,22 @@ def average_across_iterations(
 
     averaged_result_df = pd.DataFrame(averaged_result_list_dict)
     return averaged_result_df
+
+
+def subset_out_class_imbalance(df) -> pd.DataFrame:
+    """
+    Given a dataframe with class imbalance, subset out the minimum number of samples from each class.
+
+    Returns:
+
+    """
+    # find the minimum numbe of samples in a class
+    min_samples = min([len(df[df["category"] == cat]) for cat in all_cats])
+    # subset out the minimum number of samples from each class
+    df_balanced = pd.DataFrame()
+    for cat in all_cats:
+        df_cat = df[df["category"] == cat]
+        df_balanced = pd.concat([df_balanced, df_cat.sample(min_samples)])
+    # shuffle the dataframe
+    df_balanced = df_balanced.sample(frac=1).reset_index(drop=True)
+    return df_balanced

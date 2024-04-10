@@ -1,3 +1,17 @@
+"""
+Plotting functions
+
+Functions:
+    plot_scatter_with_images
+    plot_variance_explained
+    plot_ecdf
+    elbow_curve
+    pairwise_distance_heatmap
+    plot_tsne_projection
+
+
+"""
+
 import base64
 import io
 import os
@@ -18,20 +32,17 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
 
-"""
-Plotting functions
 
-Functions:
-    plot_scatter_with_images
-    plot_variance_explained
-    plot_ecdf
-    elbow_curve
-    pairwise_distance_heatmap
-    plot_tsne_projection
-        
+def plot_histogram(data):
+    """
+    Given a list of values, plot a histogram of the count/percentage of the values.
 
-"""
-
+    Returns:
+        None
+    """
+    fig, ax = plt.subplots()
+    sns.histplot(data, kde=False, ax=ax, stat="count")
+    plt.show()
 
 
 def plot_scatter_with_images(
@@ -116,7 +127,9 @@ def plot_scatter_with_images(
         color_descriptor = descriptors[color_by]
         legend_categories = [str(i) for i in sorted(np.unique(color_descriptor))]
         color_map = factor_cmap(
-            color_by, palette=Category20[len(legend_categories)], factors=legend_categories
+            color_by,
+            palette=Category20[len(legend_categories)],
+            factors=legend_categories,
         )
 
         plot.circle(
@@ -297,57 +310,122 @@ def elbow_curve(data, max_k=10, plot=True, seed=42):
     return inertia
 
 
-def pairwise_distance_heatmap(pw_dist_mat: np.ndarray, backend: str = "seaborn") -> None:
-    """
+def pairwise_distance_heatmap(
+    pw_dist_mat: np.ndarray,
+    backend: str = "seaborn",
+    title: str = "Pairwise Distance Heatmap",
+    xlabel: str = "Data Point",
+    xtick_labels: list = None,
+) -> None:
+    """Heatmap for Pairwise Distances Matrix
 
     Args:
-        pw_dist_mat (np.ndarray): pairwise distance matrix
-        backend (str): which plotting package to use
+        pw_dist_mat (np.ndarray): Pairwise distance matrix or raw data to compute the matrix from.
+        backend (str): Plotting package to use.
+            Options: "seaborn" or "matplotlib"
+        title (str): Title of the plot.
+        xlabel (str): Label for the x-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
 
     Returns:
         None
     """
-    # make sure it's a pairwise distance matrix
+    # Check if input is a square matrix
     if pw_dist_mat.shape[0] != pw_dist_mat.shape[1]:
-        print("Not a pairwise distance matrix. Calculating pairwise distances using Euclidean distance...")
-        pw_dist_mat = pairwise_distances(pw_dist_mat, metric="euclidean")
+        raise ValueError(f"Expected a square matrix. Got {pw_dist_mat.shape}.")
 
-    if backend == "seaborn":
+    if backend.lower() == "seaborn":
+        sns.set()
         pair_dist_df = pd.DataFrame(pw_dist_mat)
         fig, ax = plt.subplots(figsize=(12, 10))
         sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
+        plt.title(title)
+        plt.xlabel(xlabel)
+
+        # Set custom x-tick labels if provided
+        if xtick_labels is not None:
+            ax.set_xticklabels(xtick_labels, rotation=45)
+
+        # Show plot and save to file
         plt.show()
+
+    else:
+        raise ValueError(
+            f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
+        )
 
     save_dir = Path("../plots/pairwise_distance_matrices")
     save_dir.mkdir(exist_ok=True, parents=True)
 
 
-def plot_tsne_projection(tsne_mat: np.ndarray, labels: np.ndarray, backend: str = "seaborn") -> None:
-    """
+def plot_tsne_projections(
+    projections: np.ndarray,
+    backend: str = "matplotlib",
+    title: str = "t-SNE Plot",
+    suptitle: str = None,
+    labels: list = None,
+    categories: list = None,
+    legend_title: str = "Legend",
+) -> None:
+    """t-SNE 2-D Projections Plot
 
     Args:
-        tsne_mat (np.ndarray): t-SNE projection matrix
-        labels (np.ndarray): labels for each data point
+        projections (np.ndarray): t-SNE projection matrix
+        labels (list[str]): labels for each data point
+        categories (list[str]): categories for each data point
+        title (str):
+        suptitle (str):
         backend (str): which plotting package to use
 
     Returns:
         None
     """
 
-    df_plot = pd.DataFrame({
-        "tsne_1": tsne_mat[:, 0],
-        "tsne_2": tsne_mat[:, 1],
-        "label": labels
-    })
+    # check if input is 2-D array.
+    if projections.shape[1] != 2:
+        raise ValueError(f"Expected 2-D array. Got {projections.shape[1]} dimensions.")
 
-    if backend == "seaborn":
-        fig, ax = plt.subplots()
+    if backend == "matplotlib":
+        fig, ax = plt.subplots(figsize=(10, 6))
+        scatter = ax.scatter(
+            projections[:, 0],
+            projections[:, 1],
+            s=5,  # marker size
+            c=categories,  # color
+            label=labels,
+            cmap="viridis",
+            alpha=0.6,  # transparency
+        )
+        # plotting data point labels
+        for i, (x, y) in enumerate(projections):
+            plt.text(
+                x + 0.3, y + 0.3, labels[i], fontsize=9, ha="right", va="bottom"
+            )  # Adjust text position and size as needed
+        ax.set_title(title if title else "")
+        fig.suptitle(suptitle if suptitle else "")
+        ax.set_xlabel("t-SNE Dimension 1")
+        ax.set_ylabel("t-SNE Dimension 2")
+        ax.legend(title=legend_title, loc="best", bbox_to_anchor=(1, 0.5))
+        plt.title(title, fontsize=16)
+        plt.tight_layout()
+
+    elif backend == "seaborn":
+        data = pd.DataFrame(
+            {"tsne_1": projections[:, 0], "tsne_2": projections[:, 1], "label": labels}
+        )
+        fig, ax = plt.subplots(figsize=(10, 6))
+        # Create a scatter plot colored by category
+
         sns.scatterplot(
-            df_plot,
+            data=data,
             x="tsne_1",
             y="tsne_2",
             hue="label",
-            ax=ax
+            ax=ax,
+            palette=sns.color_palette(
+                "bright", len(np.unique(labels if labels else []))
+            ),
+            legend="full",
         )
         # legend1 = ax.legend(
         #     *scatter.legend_elements(),
@@ -356,12 +434,15 @@ def plot_tsne_projection(tsne_mat: np.ndarray, labels: np.ndarray, backend: str 
         # )
         # ax.add_artist(legend1)
         # plt.legend()
-        plt.xlabel("t-SNE Dimension 1")
-        plt.ylabel("t-SNE Dimension 2")
-        plt.title("t-SNE Plot Colored by Cluster Label")
+        ax.set_xlabel("t-SNE Dimension 1")
+        ax.set_ylabel("t-SNE Dimension 2")
+        ax.set_title(title if title else "")
+        fig.suptitle(suptitle if suptitle else "")
         plt.subplots_adjust(right=0.7)
         # plt.tight_layout(rect=[0, 0, 0.75, 1])
-        plt.show()
+
+    return fig
+
 
 def plot_design_matrix(design_matrix):
     """
@@ -371,7 +452,7 @@ def plot_design_matrix(design_matrix):
 
     """
 
-    #TODO: write this function
+    # TODO: write this function
 
     # also create a visualization of the entire design matrix
     plt.figure()

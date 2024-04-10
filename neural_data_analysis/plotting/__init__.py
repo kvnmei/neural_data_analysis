@@ -9,8 +9,9 @@ from .plotting import (
     pairwise_distance_heatmap,
     plot_ecdf,
     plot_scatter_with_images,
-    plot_tsne_projection,
+    plot_tsne_projections,
     plot_variance_explained,
+    plot_histogram,
 )
 from .raster_psth import (
     plot_raster_psth,
