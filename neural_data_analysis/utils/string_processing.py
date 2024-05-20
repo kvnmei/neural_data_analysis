@@ -23,45 +23,6 @@ brain_area_shortnames = {
     # "RSPE": "rspe",
 }
 
-brain_area_dict = {
-    "all": [
-        "amy",
-        "amygdala",
-        "Amygdala",
-        "hpc",
-        "hippocampus",
-        "Hippocampus",
-        "ofc",
-        "orbitofrontal cortex",
-        "acc",
-        "ACC",
-        "anterior cingulate cortex",
-        "sma",
-        "SMA",
-        "supplementary motor area",
-        "presma",
-        "preSMA",
-        "pre-supplementary motor area",
-        "vmpfc",
-        "vmPFC",
-        "ventromedial prefrontal cortex",
-    ],
-    "mtl": ["amy", "amygdala", "Amygdala", "hpc", "hippocampus", "Hippocampus"],
-    "amygdala": ["amygdala", "Amygdala"],
-    "amy": ["amygdala", "Amygdala"],
-    "hippocampus": ["hpc", "hippocampus", "Hippocampus"],
-    "hpc": ["hpc", "hippocampus", "Hippocampus"],
-    "orbitofrontal cortex": ["orbitofrontal cortex", "ofc", "OFC"],
-    "ofc": ["orbitofrontal cortex", "ofc", "OFC"],
-    "anterior cingulate cortex": ["anterior cingulate cortex", "acc", "ACC"],
-    "acc": ["anterior cingulate cortex", "acc", "ACC"],
-    "ACC": ["anterior cingulate cortex", "acc", "ACC"],
-    "supplementary motor area": ["supplementary motor area", "SMA", "sma"],
-    "sma": ["supplementary motor area", "SMA", "sma"],
-    "presma": ["pre-supplementary motor area", "preSMA", "presma"],
-    "vmpfc": ["ventromedial prefrontal cortex", "vmPFC", "vmpfc"],
-}
-
 
 def remove_lateralization(name: str) -> str:
     """

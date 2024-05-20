@@ -40,6 +40,8 @@ from transformers import (
     BlipForConditionalGeneration,
     CLIPModel,
 )
+from PIL import Image
+import requests
 
 
 class ImageEmbedder(ABC):
@@ -145,7 +147,7 @@ class ResNet50Embedder(ImageEmbedder, nn.Module):
 
 class CLIPEmbedder(ImageEmbedder, nn.Module):
     def __init__(self, config: dict, device: torch.device) -> None:
-        super().__init__()
+        super().__init__(config, device)
         nn.Module.__init__(self)
         self.encoder = CLIPModel.from_pretrained(config["model"])
         self.encoder.to(device)
@@ -306,26 +308,27 @@ class BLIP2Embedder(ImageEmbedder):
     def __init__(self, config: dict, device: torch.device) -> None:
         super().__init__(config, device)
         self.processor = Blip2Processor.from_pretrained(self.config["processor"])
-
         self.encoder = Blip2ForConditionalGeneration.from_pretrained(
             self.config["model"],
             torch_dtype=torch.float16,
+            device_map="auto",
         )
-        if torch.cuda.device_count() > 1:
-            print(f"Let's use {torch.cuda.device_count()} GPUs!")
-            # Wrap the model for multi-GPU usage
-            self.encoder = nn.DataParallel(self.encoder).to(self.device)
-        else:
-            self.encoder.to(self.device)
+        # if torch.cuda.device_count() > 1:
+        #     print(f"Let's use {torch.cuda.device_count()} GPUs!")
+        #     # Wrap the model for multi-GPU usage
+        #     self.encoder = nn.DataParallel(self.encoder).to(self.device)
+        # else:
+        #     self.encoder.to(self.device)
         # self.text_prompt = "A picture of "
 
     def preprocess(self, images: torch.Tensor) -> dict:
-        images = _check_image_tensor_dimensions(images)
+        # images = _check_image_tensor_dimensions(images)
+        images = [torchvision.transforms.ToPILImage()(img) for img in images]
         images = self.processor(
             images=images,
             return_tensors="pt",
-            padding=True,
-        ).to(self.device)
+            # padding=True,
+        ).to(self.device, torch.float16)
         return images
 
     def embed(self, images: torch.Tensor):
@@ -337,7 +340,7 @@ class BLIP2Embedder(ImageEmbedder):
         with torch.no_grad():
             for i in tqdm(range(0, len(images), self.batch_size)):
                 batch = images[i : i + self.batch_size]
-                batch = batch.to(self.device)
+                # batch = batch.to(self.device)
                 batch = self.preprocess(batch)
                 if isinstance(self.encoder, torch.nn.DataParallel):
                     ids = self.encoder.module.generate(**batch)
@@ -358,7 +361,7 @@ class BLIP2Embedder(ImageEmbedder):
             "text": result_text,
             "image_ids": image_ids,
         }
-        return results
+        return result_text
 
 
 class DINOEmbedder(ImageEmbedder, nn.Module):

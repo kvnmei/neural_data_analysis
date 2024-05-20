@@ -1,0 +1,32 @@
+import logging
+from pathlib import Path
+
+
+def setup_logger(
+    logger_name: str = "logger", log_filepath: Path = Path("console.log")
+) -> logging.Logger:
+    # Create a custom logger
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+    # Create handlers
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(log_filepath)
+
+    # Set levels for handlers
+    console_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.INFO)
+
+    # Create a formatter and set it for both handlers
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    # Add handlers to the logger
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    return logger

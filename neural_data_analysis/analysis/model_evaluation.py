@@ -5,8 +5,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
 import itertools
-from neural_data_analysis.utils import average_across_iterations, reshape_into_2d
 from sklearn.metrics import balanced_accuracy_score
+
 
 def process_results_multiple_regression(
     df: pd.DataFrame,
@@ -59,7 +59,9 @@ def process_results_multiple_regression(
     # shuffle the ground_truth to get a baseline score
     if shuffle_ground_truth:
         np.random.seed(42)
-        df[model_eval_input_cols["ground_truth_shuffled"]] = df[model_eval_input_cols["ground_truth"]].apply(np.random.permutation)
+        df[model_eval_input_cols["ground_truth_shuffled"]] = df[
+            model_eval_input_cols["ground_truth"]
+        ].apply(np.random.permutation)
         # TODO: fix this for cases when I don't want accuracy
         shuffled_metrics = ["balanced_accuracy"]
         # what the shuffled score will be labeled as in the dataframe
@@ -74,7 +76,6 @@ def process_results_multiple_regression(
         )
         for metric in metric_col_names.keys():
             metrics.append(f"{metric_col_names[metric]}")
-
 
     # calculate the mean of the metric across the features or samples
     if avg_across_variables:
@@ -102,7 +103,7 @@ def append_model_scores(
     by_feature: bool = True,
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
-    metric_col_names: dict = None
+    metric_col_names: dict = None,
 ) -> None:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
@@ -257,3 +258,79 @@ def residual_analysis(y_val, preds):
     # TODO: implement this function
 
     return None
+
+
+def average_across_iterations(
+    df: pd.DataFrame,
+    iter_var: str,
+    target_var: List[str],
+    columns_to_keep: List[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
+) -> pd.DataFrame:
+    """
+    Given a pandas DataFrame, average the target variable across all iterations.
+    Assumes multiple iterations were run for the same set of parameters,
+    and the same number of iterations were run for each set of parameters.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        iter_var (str): name of the column containing the iteration variable
+        target_var (tuple[str]): name of the column(s) containing the target variable(s)
+        columns_to_keep (tuple[str]): list of the original dataframe columns to keep in the new dataframe
+
+    Returns:
+        df_avg (pd.DataFrame): DataFrame containing the averaged data
+
+    Example:
+        A dataframe containing the results from a kfold cross-validation experiment.
+        Average the correlation across all folds.
+        df_avg = average_across_iterations(df, iter_var="fold", target_var="correlation")
+    """
+
+    #  dataframe conversion, for now just fixed by making it a string
+    if isinstance(target_var, str):
+        target_var = tuple(target_var)
+
+    averaged_result_list_dict = []
+    n_iter = len(np.unique(df[iter_var]))
+    # WARNING: function will not work if the iter_var is not repeated in consecutive order in the dataframe
+    for i in np.arange(0, len(df), n_iter):
+        _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
+        averaged_result_dict = {}
+        for col in columns_to_keep:
+            averaged_result_dict[f"{col}"] = _temp[f"{col}"][0]
+
+        for var in target_var:
+            variable_avg = np.mean(_temp[var].to_numpy(), axis=0)
+            variable_std = np.std(_temp[var].to_numpy(), axis=0)
+            averaged_result_dict.update(
+                {
+                    f"{var}_avg": variable_avg,
+                    f"{var}_std": variable_std,
+                }
+            )
+        averaged_result_list_dict.append(averaged_result_dict)
+
+    averaged_result_df = pd.DataFrame(averaged_result_list_dict)
+    return averaged_result_df
+
+
+def reshape_into_2d(arr: np.array) -> np.array:
+    """
+    Turns a numpy ndarray of 1-d shape (n,) into (n, 1) or keeps 2-d shape (n, m) into (n, m).
+
+    Args:
+        arr (np.ndarray): input array
+
+    Returns:
+        arr (np.ndarray): reshaped array
+    """
+    if arr.ndim == 1:
+        arr = arr.reshape(-1, 1)
+    elif arr.ndim > 2:
+        raise ValueError("Array must be 1d or 2d.")
+    return arr

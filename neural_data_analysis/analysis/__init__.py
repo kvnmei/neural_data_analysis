@@ -8,7 +8,7 @@ from .ImageEmbedder import (
     DINOEmbedder,
 )
 
-from .LinearModel import LinearModel
+from .LinearModelWrapper import LinearModelWrapper
 from .model_evaluation import (
     append_model_scores,
     evaluate_model_performance,
@@ -19,10 +19,7 @@ from .population import dataframe_from_cells, subset_cells
 from .single_neuron import calc_firing_rates
 
 from .MLPModel import (
-    MLPModel,
-    MLPMultiClassClassifier,
-    MLPBinaryClassifier,
-    MLPRegressor,
+    MLPModelWrapper,
 )
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 

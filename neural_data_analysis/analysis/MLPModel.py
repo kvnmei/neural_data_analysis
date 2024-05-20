@@ -8,66 +8,13 @@ import pandas as pd
 import torch
 import torchmetrics
 from torch.utils.data import DataLoader, TensorDataset
-
-
-class MLPModel:
-    """
-     Multi-layer perceptron model.
-
-    Methods:
-        fit(self, X_train, y_train):
-        predict(self, X_test):
-        score(gt, predictions):
-
-    """
-
-    def __init__(
-        self,
-        config: dict,
-        input_dims: int,
-        output_dims: int,
-    ) -> None:
-        self.config = config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = self.init_mlp(
-            input_dims=input_dims,
-            output_dims=output_dims,
-        )
-
-    # noinspection PyPep8Naming
-    def fit(
-        self,
-        X_train: torch.Tensor,
-        y_train: torch.Tensor,
-        X_val: torch.Tensor = None,
-        y_val: torch.Tensor = None,
-        run_info: dict = None,
-    ):
-        self.model.fit(X_train, y_train, X_val, y_val, run_info)
-
-    # noinspection PyPep8Naming
-    def predict(self, X_test):
-        predictions = self.model.predict(X_test)
-        return predictions
-
-    def init_mlp(self, input_dims, output_dims):
-        hparams = {
-            "input_dims": input_dims,
-            "output_dims": output_dims,
-            "hidden_dims": self.config["ExperimentRunner"]["MLPModel"]["hidden_dims"],
-            "num_layers": self.config["ExperimentRunner"]["MLPModel"]["num_layers"],
-            "learning_rate": self.config["ExperimentRunner"]["MLPModel"]["lr"],
-            "batch_size": self.config["ExperimentRunner"]["MLPModel"]["batch_size"],
-            "max_epochs": self.config["ExperimentRunner"]["MLPModel"]["max_epochs"],
-            "problem_type": self.config["ExperimentRunner"]["problem_type"],
-        }
-        model = MLPModelWrapper(hparams)
-        return model
+from pytorch_lightning.loggers import CSVLogger
 
 
 class MLPModelWrapper:
-    """
-    Wrapper for MLPClassifier and MLPRegressor.
+    """Wrapper for MLPModel classes.
+
+    Wrapper for MLPMultiClassClassifier, MLPBinaryClassifier, and MLPRegressor.
 
     Methods:
         __init__(self, hparams):
@@ -76,23 +23,33 @@ class MLPModelWrapper:
         fit(self, X_train, y_train, X_val=None, y_val=None, run_info=None):
         predict(self, X):
         save(self, path):
-
     """
 
-    def __init__(self, hparams):
+    def __init__(self, config: dict, input_dims: int, output_dims: int):
         """
         This model defines what type of MLP model to instantiate: classifier or regressor
 
         Args:
             hparams: hyperparameters
         """
-        self.hparams = hparams
+        self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.hparams = {
+            "input_dims": input_dims,
+            "output_dims": output_dims,
+            "hidden_dims": self.config["hidden_dims"],
+            "num_layers": self.config["num_layers"],
+            "learning_rate": self.config["lr"],
+            "batch_size": self.config["batch_size"],
+            "max_epochs": self.config["max_epochs"],
+            "problem_type": self.config["problem_type"],
+        }
         if self.hparams["problem_type"] == "multi_class_classification":
-            self.model = MLPMultiClassClassifier(hparams)
+            self.model = MLPMultiClassClassifier(self.hparams)
         elif self.hparams["problem_type"] == "binary_classification":
-            self.model = MLPBinaryClassifier(hparams)
+            self.model = MLPBinaryClassifier(self.hparams)
         elif self.hparams["problem_type"] == "regression":
-            self.model = MLPRegressor(hparams)
+            self.model = MLPRegressor(self.hparams)
         else:
             raise ValueError(
                 f"Problem type {self.hparams['problem']} not supported. "
@@ -106,20 +63,27 @@ class MLPModelWrapper:
             batch_size=self.hparams["batch_size"],
             shuffle=True,
             drop_last=True,
+            num_workers=8,
         )
         return dataloader
 
-    def create_trainer(self) -> pl.Trainer:
+    def create_trainer(self, run_info: dict) -> pl.Trainer:
         # TODO: create a variable expected_epochs, and check the expected number of batches to see what value
         #  I should give for check_val_every_n_epochs, relates to log_every_n_steps too
 
+        # create a logger
+        csv_logger = CSVLogger(
+            save_dir=run_info["save_dir"],
+            name="lightning_logs",
+        )
         # TODO: distributed computing using two GPUs hangs... why?
         trainer = pl.Trainer(
             max_epochs=self.hparams["max_epochs"],
             num_sanity_val_steps=0,
             accelerator="auto",
             devices=1,
-            # logger=None,
+            logger=csv_logger,
+            log_every_n_steps=10,
             # check_val_every_n_epoch=1,
         )
         return trainer
@@ -140,7 +104,7 @@ class MLPModelWrapper:
             y_train = torch.from_numpy(y_train).float()
         dataset = TensorDataset(X_train, y_train)
         train_dataloader = self.create_dataloader(dataset)
-        trainer = self.create_trainer()
+        trainer = self.create_trainer(run_info)
 
         # if validation data is provided, use it
         if X_val is not None:
@@ -149,7 +113,13 @@ class MLPModelWrapper:
             if not torch.is_tensor(y_val):
                 y_val = torch.from_numpy(y_val).float()
             dataset_val = torch.utils.data.TensorDataset(X_val, y_val)
-            val_dataloader = self.create_dataloader(dataset_val)
+            val_dataloader = DataLoader(
+                dataset_val,
+                batch_size=self.hparams["batch_size"],
+                shuffle=False,
+                drop_last=True,
+                num_workers=8,
+            )
             trainer.fit(self.model, train_dataloader, val_dataloader)
         else:
             trainer.fit(self.model, train_dataloader)
@@ -182,13 +152,18 @@ class MLPModelWrapper:
 
     # noinspection PyPep8Naming
     def predict(self, X: torch.Tensor) -> np.ndarray:
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if not torch.is_tensor(X):
             X = torch.from_numpy(X).float()
-        predictions = self.model(X)
+            # X = torch.tensor(X, dtype=torch.float32).to(device)
+        self.model.eval()
+        with torch.no_grad():
+            predictions = self.model(X)
         return predictions.detach().numpy()
 
     def save(self, path):
         torch.save(self.model.state_dict(), path)
+
 
 class MLPBinaryClassifier(pl.LightningModule):
     """
@@ -306,7 +281,8 @@ class MLPBinaryClassifier(pl.LightningModule):
 
 
 class MLPMultiClassClassifier(pl.LightningModule):
-    """
+    """Multiclass Classifier for single output but multiple classes.
+
     Methods:
         forward(self, x):
         training_step(self, batch, batch_idx):

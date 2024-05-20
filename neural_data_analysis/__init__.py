@@ -10,11 +10,8 @@ from .analysis import (
     Electrode,
     evaluate_model_performance,
     Event,
-    LinearModel,
-    MLPMultiClassClassifier,
-    MLPBinaryClassifier,
-    MLPModel,
-    MLPRegressor,
+    LinearModelWrapper,
+    MLPModelWrapper,
     Neuron,
     process_results_multiple_regression,
     ResNet50Embedder,
@@ -40,13 +37,13 @@ from .plotting import (
     plot_gantt_bar_chart,
 )
 from .utils import (
-    average_across_iterations,
     correct_filepath,
     create_order_index,
     get_brain_area_abbreviation,
     get_nwb_files,
     recursive_dict_update,
     remove_lateralization,
+    setup_logger,
 )
 
 __author__ = "Kevin J. M. Le"

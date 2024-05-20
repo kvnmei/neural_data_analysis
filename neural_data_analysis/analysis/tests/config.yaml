@@ -11,3 +11,9 @@ MLPModel:
   hidden_dims: 100
   batch_size: 32
   problem_type: classification # options: regression, classification, binary
+
+
+gpt:
+  openai_api_key: null
+  gpt_engine: "gpt-4"
+  pregenerate_prompts: False
