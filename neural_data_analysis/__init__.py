@@ -44,6 +44,7 @@ from .utils import (
     recursive_dict_update,
     remove_lateralization,
     setup_logger,
+    setup_default_logger,
 )
 
 __author__ = "Kevin J. M. Le"

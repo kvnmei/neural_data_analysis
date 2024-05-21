@@ -30,3 +30,27 @@ def setup_logger(
     logger.addHandler(file_handler)
     logger.propagate = False
     return logger
+
+
+def setup_default_logger():
+    # Create a logger
+    logger = logging.getLogger("default")
+    logger.setLevel(logging.INFO)
+
+    # Check if the logger already has handlers to avoid duplicate messages
+    if not logger.hasHandlers():
+        # Create a console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        # Create a formatter and set it for the handler
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        console_handler.setFormatter(formatter)
+
+        # Add the handler to the logger
+        logger.addHandler(console_handler)
+
+    return logger

@@ -8,7 +8,7 @@ from .utils import (
     create_order_index,
     recursive_dict_update,
 )
-from .logger_setup import setup_logger
+from .logger_setup import setup_logger, setup_default_logger
 
 __version__ = "0.0.1"
 __description__ = "A package for miscellaneous functions."
