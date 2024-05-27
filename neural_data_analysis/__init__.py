@@ -1,4 +1,5 @@
 from .analysis import (
+    average_across_iterations,
     embedder_config,
     embedder_from_spec,
     append_model_scores,
@@ -16,6 +17,7 @@ from .analysis import (
     process_results_multiple_regression,
     ResNet50Embedder,
     subset_cells,
+    t_test,
     TextEmbedder,
     SGPTEmbedder,
 )

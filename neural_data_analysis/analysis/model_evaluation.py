@@ -3,14 +3,20 @@ import pandas as pd
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import List, Dict
 import itertools
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import (
+    balanced_accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report,
+    precision_recall_fscore_support,
+)
 
 
 def process_results_multiple_regression(
     df: pd.DataFrame,
-    metrics: List[str] = ("r2", "corr"),
+    metrics: list[str] = ("r2", "corr"),
     model_eval_input_cols: dict = None,
     by_feature: bool = True,
     avg_across_variables: bool = True,
@@ -24,7 +30,7 @@ def process_results_multiple_regression(
 ) -> pd.DataFrame:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
-    calculate the model performance for each sample or feature.
+    calculate the model performance for each sample (row) or feature (column).
     Appends the metric scores to the input dataframe in-place.
 
     Args:
@@ -99,7 +105,7 @@ def process_results_multiple_regression(
 
 def append_model_scores(
     df: pd.DataFrame,
-    metrics: List[str],
+    metrics: list[str],
     by_feature: bool = True,
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
@@ -107,7 +113,10 @@ def append_model_scores(
 ) -> None:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
-    calculate the model performance for each sample or feature.
+    calculate for each row of the dataframe the model performance.
+    The ground truth and prediction should be shape (n_samples, n_features)
+    If calculating by feature, the output will be shape (n_features) after calculating the metric across samples.
+    If calculating by sample, the output will be shape (n_samples) after calculating the metric across features.
     Appends the metric scores to the input dataframe in place.
 
     Args:
@@ -130,6 +139,8 @@ def append_model_scores(
             df[gt_col][i], df[pred_col][i], metric=metrics, by_feature=by_feature
         )
         scores.append(row_score)
+
+    # append the scores to the dataframe in place
     for metric in metrics:
         if metric_col_names is not None:
             df[metric_col_names[metric]] = [score[metric] for score in scores]
@@ -143,7 +154,7 @@ def evaluate_model_performance(
     predictions: np.ndarray,
     metric: list[str],
     by_feature=True,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """
     Args:
         ground_truth (np.ndarray): (n_samples, n_features)
@@ -158,40 +169,53 @@ def evaluate_model_performance(
     ground_truth = reshape_into_2d(ground_truth)
     predictions = reshape_into_2d(predictions)
 
+    # print(classification_report(ground_truth, predictions))
+    # f1_score(ground_truth, predictions, average=None)
+
     scores = {}
     for metric_name in metric:
-        metric_score = []
-        if by_feature:
-            # noinspection GrazieInspection
-            for feature_idx in range(ground_truth.shape[1]):
-                feat_gt = ground_truth[:, feature_idx]
-                feat_pred = predictions[:, feature_idx]
-                score = evaluate_metric(feat_gt, feat_pred, metric_name)
-                metric_score.append(score)
-
-                # r2 = r2_score(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                # mse = mean_squared_error(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                # corr = pearsonr(ground_truth[:, feature_idx], predictions[:, feature_idx])[0]
-                # # corr2 = np.corrcoef(ground_truth[:, feature_idx], predictions[:, feature_idx])[0,1]
-                # cos_sim = cosine_similarity(
-                #     ground_truth[:, feature_idx].reshape(1, -1), predictions[:, feature_idx].reshape(1, -1)
-                # ).item()
-                # cos_dist = distance.cosine(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                # euc_dist = distance.euclidean(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                # print(f"R2: {r2}, "
-                #       f"MSE: {mse}, "
-                #       f"corr: {corr}, "
-                #       f"cosine similarity: {cos_sim}, "
-                #       f"cosine distance: {cos_dist}, "
-                #       f"euclidean distance: {euc_dist},")
-                # scores.append([f"feature_{feature_idx}", r2, mse, corr, cos_sim, euc_dist])
+        # for multilabel binary classification
+        if metric_name in ["precision", "recall", "fscore", "support"]:
+            (
+                scores["precision"],
+                scores["recall"],
+                scores["fscore"],
+                scores["support"],
+            ) = precision_recall_fscore_support(ground_truth, predictions)
+            break
         else:
-            # noinspection GrazieInspection
-            for i in range(ground_truth.shape[0]):
-                sample_gt = ground_truth[i]
-                sample_pred = predictions[i]
-                score = evaluate_metric(sample_gt, sample_pred, metric_name)
-                metric_score.append(score)
+            metric_score = []
+            if by_feature:
+                # noinspection GrazieInspection
+                for feature_idx in range(ground_truth.shape[1]):
+                    feat_gt = ground_truth[:, feature_idx]
+                    feat_pred = predictions[:, feature_idx]
+                    score = evaluate_metric(feat_gt, feat_pred, metric_name)
+                    metric_score.append(score)
+
+                    # r2 = r2_score(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                    # mse = mean_squared_error(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                    # corr = pearsonr(ground_truth[:, feature_idx], predictions[:, feature_idx])[0]
+                    # # corr2 = np.corrcoef(ground_truth[:, feature_idx], predictions[:, feature_idx])[0,1]
+                    # cos_sim = cosine_similarity(
+                    #     ground_truth[:, feature_idx].reshape(1, -1), predictions[:, feature_idx].reshape(1, -1)
+                    # ).item()
+                    # cos_dist = distance.cosine(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                    # euc_dist = distance.euclidean(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                    # print(f"R2: {r2}, "
+                    #       f"MSE: {mse}, "
+                    #       f"corr: {corr}, "
+                    #       f"cosine similarity: {cos_sim}, "
+                    #       f"cosine distance: {cos_dist}, "
+                    #       f"euclidean distance: {euc_dist},")
+                    # scores.append([f"feature_{feature_idx}", r2, mse, corr, cos_sim, euc_dist])
+            else:
+                # noinspection GrazieInspection
+                for i in range(ground_truth.shape[0]):
+                    sample_gt = ground_truth[i]
+                    sample_pred = predictions[i]
+                    score = evaluate_metric(sample_gt, sample_pred, metric_name)
+                    metric_score.append(score)
 
             # r2 = r2_score(ground_truth[i], predictions[i])
             # mse = mean_squared_error(ground_truth[i], predictions[i])
@@ -209,7 +233,7 @@ def evaluate_model_performance(
             #       f"cosine distance: {cos_dist}, "
             #       f"euclidean distance: {euc_dist},")
             # scores.append([f"sample_{i}", r2, mse, corr, cos_sim, euc_dist])
-        scores[metric_name] = np.array(metric_score)
+            scores[metric_name] = np.array(metric_score)
     # scores_df = pd.DataFrame(
     #     scores,
     #     columns=[
@@ -263,8 +287,8 @@ def residual_analysis(y_val, preds):
 def average_across_iterations(
     df: pd.DataFrame,
     iter_var: str,
-    target_var: List[str],
-    columns_to_keep: List[str] = (
+    target_var: list[str],
+    columns_to_keep: list[str] = (
         "brain_area",
         "bin_center",
         "bin_size",
@@ -319,7 +343,7 @@ def average_across_iterations(
     return averaged_result_df
 
 
-def reshape_into_2d(arr: np.array) -> np.array:
+def reshape_into_2d(arr: np.ndarray) -> np.ndarray:
     """
     Turns a numpy ndarray of 1-d shape (n,) into (n, 1) or keeps 2-d shape (n, m) into (n, m).
 

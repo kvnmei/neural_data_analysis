@@ -39,13 +39,26 @@ class LinearModelWrapper:
         self.method = method
         self.alpha = alpha
         self.coef_ = None
-        if self.config["problem_type"] == "multilabel_binary_classification":
+        if self.config["problem_type"] == "binary_classification":
             pipeline = Pipeline(
                 [
                     ("scaler", StandardScaler()),
                     (
                         "classifier",
-                        MultiOutputClassifier(LogisticRegression(max_iter=1000)),
+                        LogisticRegression(class_weight="balanced", max_iter=1000),
+                    ),
+                ]
+            )
+            self.model = pipeline
+        elif self.config["problem_type"] == "multilabel_binary_classification":
+            pipeline = Pipeline(
+                [
+                    ("scaler", StandardScaler()),
+                    (
+                        "classifier",
+                        MultiOutputClassifier(
+                            LogisticRegression(class_weight="balanced", max_iter=1000)
+                        ),
                     ),
                 ]
             )

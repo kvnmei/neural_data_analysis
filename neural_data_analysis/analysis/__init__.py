@@ -13,6 +13,7 @@ from .model_evaluation import (
     append_model_scores,
     evaluate_model_performance,
     process_results_multiple_regression,
+    average_across_iterations,
 )
 from .Neuron import Neuron
 from .population import dataframe_from_cells, subset_cells
@@ -21,6 +22,7 @@ from .single_neuron import calc_firing_rates
 from .MLPModel import (
     MLPModelWrapper,
 )
+from .stats import t_test
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 
 __version__ = "0.0.1"
