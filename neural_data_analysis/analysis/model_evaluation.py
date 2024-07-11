@@ -11,12 +11,16 @@ from sklearn.metrics import (
     f1_score,
     classification_report,
     precision_recall_fscore_support,
+    cohen_kappa_score,
 )
+from tabulate import tabulate
+import logging
 
 
-def process_results_multiple_regression(
+def calculate_model_performance(
     df: pd.DataFrame,
-    metrics: list[str] = ("r2", "corr"),
+    metrics: list[str] = ["r2", "corr"],
+    metrics_for_shuffled_data: list[str] = ["balanced_accuracy"],
     model_eval_input_cols: dict = None,
     by_feature: bool = True,
     avg_across_variables: bool = True,
@@ -35,15 +39,32 @@ def process_results_multiple_regression(
 
     Args:
         df (pd.DataFrame): dataframe containing the ground truth and predictions
-        metrics (list): list of metrics to compute between predictions and ground truth
+        metrics (list[str]): list of metrics to compute between predictions and ground truth
+        metrics_for_shuffled_data (list[str]): list of metrics to compute for the shuffled data
         model_eval_input_cols (dict): name of the column containing the ground truth and the predictions
-        gt_col: name of the column containing the ground truth
-        by_feature: if True, evaluate performance for each feature separately
-            if False, evaluate performance for each sample separately
+            keys are the what column names this function looks for
+            values are the corresponding column names in the input
+        by_feature: if True, evaluate performance for each feature/variable (column) separately
+            if False, evaluate performance for each sample (row) separately
+        avg_across_variables (bool): if True, average the metric across the features or samples
+        shuffle_ground_truth (bool): if True, shuffle the ground truth labels to get a baseline score
+        columns_to_keep (list[str]): list of the original dataframe columns to keep in the new dataframe
 
     Returns:
-        None, appends the metrics to the input df
+        averaged_df (pd.DataFrame): DataFrame containing the averaged data
     """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Calculating model performance with the following parameters:")
+    logger.info(f"Model performance metrics: [{metrics}]")
+    logger.info(f"Calculate performance by feature or variable? [{by_feature}]")
+    logger.info(
+        f"Average performance across features or samples? [{avg_across_variables}]"
+    )
+    logger.info(
+        f"Shuffle the ground truth labels to get a baseline score? [{shuffle_ground_truth}]"
+    )
+    logger.info(f"Columns to keep in the new dataframe: [{columns_to_keep}]")
+
     # calculate the model performance by computing a metric between the ground truth and the predictions
     # by default, will look for columns named "ground_truth" and "predictions"
     if model_eval_input_cols is None:
@@ -52,7 +73,10 @@ def process_results_multiple_regression(
             "predictions": "predictions",
             "ground_truth_shuffled": "ground_truth_shuffled",
         }
+    for k, v in model_eval_input_cols.items():
+        logger.info(f"Looking for {k} values in the dataframe column [{v}]")
 
+    logger.info("Calculating model performance...")
     # this will modify the dataframe in place
     append_model_scores(
         df,
@@ -62,29 +86,64 @@ def process_results_multiple_regression(
         pred_col=model_eval_input_cols["predictions"],
     )
 
+    sanity_check = False
+    if sanity_check:
+        gt = df["ground_truth"][0][:, 0]
+        pred = df["predictions"][0][:, 0]
+        report_dict = classification_report(
+            gt, pred, target_names=["0", "1"], output_dict=True
+        )
+        # Convert the dictionary to a list of lists for tabulate
+        # Initialize lists for tabulate
+        headers = ["Class", "Precision", "Recall", "F1-Score", "Support"]
+        rows = []
+
+        # Append rows for each class
+        for key, values in report_dict.items():
+            if isinstance(values, dict):
+                rows.append(
+                    [key]
+                    + [
+                        values["precision"],
+                        values["recall"],
+                        values["f1-score"],
+                        values["support"],
+                    ]
+                )
+            else:
+                rows.append([key, values, "", "", ""])
+        print(f"Balanced accuracy: {balanced_accuracy_score(gt, pred)}")
+        print("Classification Report:\n")
+        print(tabulate(rows, headers=headers, floatfmt=".2f"))
+
     # shuffle the ground_truth to get a baseline score
     if shuffle_ground_truth:
+        # set seed to always get the same shuffled values
         np.random.seed(42)
+        # permute the ground truth labels in the data column represented by model_eval_input_cols["ground_truth"]
+        logger.info("Permuting the ground truth values...")
         df[model_eval_input_cols["ground_truth_shuffled"]] = df[
             model_eval_input_cols["ground_truth"]
         ].apply(np.random.permutation)
-        # TODO: fix this for cases when I don't want accuracy
-        shuffled_metrics = ["balanced_accuracy"]
         # what the shuffled score will be labeled as in the dataframe
-        metric_col_names = {metric: f"{metric}_shuffled" for metric in shuffled_metrics}
+        shuffled_metric_col_names = {
+            metric: f"{metric}_shuffled" for metric in metrics_for_shuffled_data
+        }
+        logger.info("Calculating model performance for shuffled ground truth...")
         append_model_scores(
             df,
-            metrics=shuffled_metrics,
+            metrics=metrics_for_shuffled_data,
             by_feature=by_feature,
             gt_col=model_eval_input_cols["ground_truth_shuffled"],
             pred_col=model_eval_input_cols["predictions"],
-            metric_col_names=metric_col_names,
+            metric_col_names=shuffled_metric_col_names,
         )
-        for metric in metric_col_names.keys():
-            metrics.append(f"{metric_col_names[metric]}")
+        for metric in shuffled_metric_col_names.keys():
+            metrics.append(f"{shuffled_metric_col_names[metric]}")
 
     # calculate the mean of the metric across the features or samples
     if avg_across_variables:
+        logger.info("Averaging performance across features or samples...")
         for metric in metrics:
             if by_feature:
                 df[f"{metric}_mean"] = np.mean(np.stack(df[metric]), axis=1)
@@ -93,6 +152,7 @@ def process_results_multiple_regression(
         metrics = [f"{metric}_mean" for metric in metrics]
 
     # average across the folds
+    logger.info("Averaging performance across validation folds...")
     averaged_df = average_across_iterations(
         df,
         iter_var="fold",
@@ -273,6 +333,8 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
         score = np.mean(ground_truth == predictions)
     elif (metric == "balanced_accuracy") or (metric == "balanced_acc"):
         score = balanced_accuracy_score(ground_truth, predictions)
+    elif metric == "cohen_kappa":
+        score = cohen_kappa_score(ground_truth, predictions)
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score
@@ -321,7 +383,11 @@ def average_across_iterations(
 
     averaged_result_list_dict = []
     n_iter = len(np.unique(df[iter_var]))
-    # WARNING: function will not work if the iter_var is not repeated in consecutive order in the dataframe
+
+    # logging.warning(
+    #     "Averaging will not work if the iter_var is not repeated in consecutive order in the dataframe"
+    # )
+
     for i in np.arange(0, len(df), n_iter):
         _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
         averaged_result_dict = {}

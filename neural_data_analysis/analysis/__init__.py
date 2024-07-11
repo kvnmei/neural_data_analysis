@@ -12,11 +12,11 @@ from .LinearModelWrapper import LinearModelWrapper
 from .model_evaluation import (
     append_model_scores,
     evaluate_model_performance,
-    process_results_multiple_regression,
+    calculate_model_performance,
     average_across_iterations,
 )
 from .Neuron import Neuron
-from .population import dataframe_from_cells, subset_cells
+from .population import dataframe_from_cells, subset_cells, brain_area_dict
 from .single_neuron import calc_firing_rates
 
 from .MLPModel import (

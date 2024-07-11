@@ -33,14 +33,13 @@ def t_test(data: np.ndarray, labels, alpha=0.05):
     print(f"Normality Group {group2}: {'Passed' if normality_group2 else 'Failed'}")
     print(f"Homogeneity of Variances: {'Passed' if homogeneity else 'Failed'}")
 
-    t_stat, p_value = perform_t_test(data, labels, group1, group2)
+    t_stat, p_value = stats.ttest_ind(group1_data, group2_data)
     print(f"T-Statistic: {t_stat}, P-Value: {p_value}")
 
     if not (normality_group1 and normality_group2 and homogeneity):
         print("Assumptions not met for t-test. Consider using non-parametric tests.")
 
-    # t_stat, p_val = stats.ttest_ind(group1, group2)
-    return t_stat, p_val
+    return t_stat, p_value
 
 
 def check_normality(data, alpha=0.05):

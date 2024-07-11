@@ -537,6 +537,7 @@ def plot_metrics(
     plt.legend()
     plt.tight_layout()
     plt.savefig(plots_dir / f"{run_name}_train_val_{metric}.png")
+    plt.close()
 
     values_df = pd.DataFrame(values)
     values_df.to_csv(csv_dir / f"{run_name}_{metric}.csv")

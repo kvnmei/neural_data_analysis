@@ -14,12 +14,13 @@ from .analysis import (
     LinearModelWrapper,
     MLPModelWrapper,
     Neuron,
-    process_results_multiple_regression,
+    calculate_model_performance,
     ResNet50Embedder,
     subset_cells,
     t_test,
     TextEmbedder,
     SGPTEmbedder,
+    brain_area_dict,
 )
 
 from .plotting import (

@@ -3,6 +3,10 @@
 
 Functions:
     recursive_dict_update(dict, dict):
+    correct_filepath(Path, str):
+    create_order_index(list, list):
+    subset_out_class_imbalance(pd.DataFrame):
+
 
 Classes:
     None
@@ -70,7 +74,7 @@ def create_order_index(array1: list, array2: list):
     Example:
         index = create_order_index(array1, array2)
         array2 = [array1[i] for i in index]
-        OR
+        CHECK:
         np.array(array2) == np.array(array1)[index]
     """
     assert set(array1) == set(

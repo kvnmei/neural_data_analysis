@@ -63,6 +63,7 @@ class LinearModelWrapper:
                 ]
             )
             self.model = pipeline
+        print("Logistic Regression uses balanced class weights.")
 
     def fit(self, X, y):
         """
