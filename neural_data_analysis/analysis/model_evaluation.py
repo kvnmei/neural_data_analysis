@@ -12,8 +12,9 @@ from sklearn.metrics import (
     classification_report,
     precision_recall_fscore_support,
     cohen_kappa_score,
+    confusion_matrix,
 )
-from tabulate import tabulate
+# from tabulate import tabulate
 import logging
 
 
@@ -114,7 +115,7 @@ def calculate_model_performance(
                 rows.append([key, values, "", "", ""])
         print(f"Balanced accuracy: {balanced_accuracy_score(gt, pred)}")
         print("Classification Report:\n")
-        print(tabulate(rows, headers=headers, floatfmt=".2f"))
+        # print(tabulate(rows, headers=headers, floatfmt=".2f"))
 
     # shuffle the ground_truth to get a baseline score
     if shuffle_ground_truth:
@@ -334,10 +335,39 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
     elif (metric == "balanced_accuracy") or (metric == "balanced_acc"):
         score = balanced_accuracy_score(ground_truth, predictions)
     elif metric == "cohen_kappa":
-        if len(set(ground_truth)) == 2:
-            score = cohen_kappa_score(ground_truth, predictions)
-        else:
+        # Calculate confusion matrix
+        try:
+            tn, fp, fn, tp = confusion_matrix(ground_truth, predictions).ravel()
+        except ValueError:
+            if len(set(ground_truth)) == 1:
+                print("Ground truth only contains one unique class.")
+            elif len(set(predictions)) == 1:
+                print("Predictions only contain one unique class.")
+            else:
+                print("Other issue.")
+            print("Returning the raw accuracy.")
             score = np.mean(ground_truth == predictions)
+            return score
+
+        # Calculate p0 (observed agreement)
+        p0 = (tn + tp) / (tn + fp + fn + tp)
+        # Calculate pe (expected agreement)
+        p_pred0 = (tn + fn) / (tn + fp + fn + tp)
+        p_pred1 = (tp + fp) / (tn + fp + fn + tp)
+        p_actual0 = (tn + fp) / (tn + fp + fn + tp)
+        p_actual1 = (tp + fn) / (tn + fp + fn + tp)
+
+        pe = (p_pred0 * p_actual0) + (p_pred1 * p_actual1)
+        # Calculate Cohen's Kappa
+        kappa = (p0 - pe) / (1 - pe)
+
+        print(f"Observed Agreement (p0): {p0:.2f}")
+        print(f"Expected Agreement (pe): {pe:.2f}")
+        print(f"Cohen's Kappa: {kappa:.2f}")
+
+        score = cohen_kappa_score(ground_truth, predictions)
+
+        print(f"Cohen's Kappa (sklearn): {score:.2f}")
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score

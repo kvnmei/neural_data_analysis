@@ -64,6 +64,7 @@ class MLPModelWrapper:
             shuffle=True,
             drop_last=True,
             num_workers=8,
+            persistent_workers=True
         )
         return dataloader
 
@@ -119,6 +120,7 @@ class MLPModelWrapper:
                 shuffle=False,
                 drop_last=True,
                 num_workers=8,
+                persistent_workers=True
             )
             trainer.fit(self.model, train_dataloader, val_dataloader)
         else:
@@ -515,7 +517,7 @@ def plot_metrics(
     csv_dir = Path(f"{save_dir}/{metric}_values")
     csv_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Plotting {metric} to {save_dir}...")
+    print(f"Plotting [{metric}] to [{save_dir}]...")
     _ = plt.figure()
     plt.suptitle(run_name)
     plt.scatter(

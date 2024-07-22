@@ -320,7 +320,7 @@ def pairwise_distance_heatmap(
     """Heatmap for Pairwise Distances Matrix
 
     Args:
-        pw_dist_mat (np.ndarray): Pairwise distance matrix or raw data to compute the matrix from.
+        pw_dist_mat (np.ndarray): Pairwise distance (square, symmetric) matrix .
         backend (str): Plotting package to use.
             Options: "seaborn" or "matplotlib"
         title (str): Title of the plot.
@@ -347,6 +347,7 @@ def pairwise_distance_heatmap(
             ax.set_xticklabels(xtick_labels, rotation=45)
 
         # Show plot and save to file
+        plt.tight_layout()
         plt.show()
 
     else:
