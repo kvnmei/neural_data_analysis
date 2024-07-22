@@ -334,7 +334,10 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
     elif (metric == "balanced_accuracy") or (metric == "balanced_acc"):
         score = balanced_accuracy_score(ground_truth, predictions)
     elif metric == "cohen_kappa":
-        score = cohen_kappa_score(ground_truth, predictions)
+        if len(set(ground_truth)) == 2:
+            score = cohen_kappa_score(ground_truth, predictions)
+        else:
+            score = np.mean(ground_truth == predictions)
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score
