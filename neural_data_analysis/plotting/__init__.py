@@ -6,12 +6,14 @@ from .model_results import (
     plot_object_detection_result,
 )
 from .plotting import (
-    pairwise_distance_heatmap,
+    plot_pairwise_distance_heatmap,
     plot_ecdf,
     plot_scatter_with_images,
     plot_tsne_projections,
     plot_variance_explained,
     plot_histogram,
+    create_rose_plot,
+    plot_binary_matrix_heatmap,
 )
 from .raster_psth import (
     plot_raster_psth,

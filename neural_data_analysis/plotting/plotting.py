@@ -31,7 +31,7 @@ from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
-
+from matplotlib.patches import Patch
 
 def plot_histogram(data):
     """
@@ -310,55 +310,9 @@ def elbow_curve(data, max_k=10, plot=True, seed=42):
     return inertia
 
 
-def pairwise_distance_heatmap(
-    pw_dist_mat: np.ndarray,
-    backend: str = "seaborn",
-    title: str = "Pairwise Distance Heatmap",
-    xlabel: str = "Data Point",
-    xtick_labels: list = None,
-) -> None:
-    """Heatmap for Pairwise Distances Matrix
-
-    Args:
-        pw_dist_mat (np.ndarray): Pairwise distance (square, symmetric) matrix .
-        backend (str): Plotting package to use.
-            Options: "seaborn" or "matplotlib"
-        title (str): Title of the plot.
-        xlabel (str): Label for the x-axis.
-        xtick_labels (list, optional): Custom labels for the x-axis ticks.
-
-    Returns:
-        None
-    """
-    # Check if input is a square matrix
-    if pw_dist_mat.shape[0] != pw_dist_mat.shape[1]:
-        raise ValueError(f"Expected a square matrix. Got {pw_dist_mat.shape}.")
-
-    if backend.lower() == "seaborn":
-        sns.set()
-        pair_dist_df = pd.DataFrame(pw_dist_mat)
-        fig, ax = plt.subplots(figsize=(12, 10))
-        sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
-        plt.title(title)
-        plt.xlabel(xlabel)
-
-        # Set custom x-tick labels if provided
-        if xtick_labels is not None:
-            ax.set_xticklabels(xtick_labels, rotation=45)
-
-        # Show plot and save to file
-        plt.tight_layout()
-        plt.show()
-
-    else:
-        raise ValueError(
-            f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
-        )
-
-    save_dir = Path("../plots/pairwise_distance_matrices")
-    save_dir.mkdir(exist_ok=True, parents=True)
-
-
+# ========================================
+# Function: plot_tsne_projections]
+# ========================================
 def plot_tsne_projections(
     projections: np.ndarray,
     backend: str = "matplotlib",
@@ -445,6 +399,9 @@ def plot_tsne_projections(
     return fig
 
 
+# ========================================
+# Function: plot_design_matrix
+# ========================================
 def plot_design_matrix(design_matrix):
     """
     This plots the design matrix that goes into a linear decoding/encoding model.
@@ -461,3 +418,188 @@ def plot_design_matrix(design_matrix):
     plt.xlabel("Feature")
     plt.ylabel("Time (Frames)")
     plt.show()
+
+
+# ========================================
+# Function: create_rose_plot
+# ========================================
+def create_rose_plot(df, neuron_id, custom_order=None) -> None:
+    """Create a rose plot for a single neuron.
+
+    Parameters:
+        df (DataFrame): The DataFrame containing neuron data.
+        neuron_id (int or str): The ID of the neuron to plot.
+        custom_order (list): A custom order for the labels (optional).
+
+    Returns:
+        None
+    """
+    # Subset the DataFrame for the given neuron
+    neuron_data = df[df["cell_id"] == neuron_id]
+
+    # Prepare the data for plotting
+    labels = neuron_data["label"].unique()
+    if custom_order:
+        labels = [label for label in custom_order if label in labels]
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    values = [
+        neuron_data[neuron_data["label"] == label]["importance_rank"].mean()
+        for label in labels
+    ]
+
+    # Repeat the first value to close the circle
+    angles += angles[:1]
+    values += values[:1]
+
+    # Create the rose plot
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    ax.plot(angles, values, "o-", linewidth=2)
+    ax.fill(angles, values, alpha=0.25)
+
+    # Add labels to the plot
+    ax.set_yticklabels([])
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
+
+    # Add title
+    ax.set_title(f"Rose Plot for Neuron: {neuron_id}", size=20, y=1.1)
+
+    plt.show()
+
+
+# ========================================
+# Function: plot_pairwise_distance_heatmap
+# ========================================
+def plot_pairwise_distance_heatmap(
+    pw_dist_mat: np.ndarray,
+    backend: str = "seaborn",
+    **kwargs,
+) -> None:
+    """Heatmap for Pairwise Distances Matrix
+
+    Parameters:
+        pw_dist_mat (np.ndarray): Pairwise distance (square, symmetric) matrix.
+        backend (str): Plotting package to use.
+            Options: "seaborn" or "matplotlib"
+        title (str): Title of the plot.
+        xlabel (str): Label for the x-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        ytick_labels (list, optional): Custom labels for the y-axis ticks.
+        save_dir (str or Path, optional): Directory to save the plot.
+        save_filename (str, optional): File name to save the plot.
+
+    Returns:
+        None
+    """
+    # Check if input is a square matrix
+    if pw_dist_mat.shape[0] != pw_dist_mat.shape[1]:
+        raise ValueError(f"Expected a square matrix. Got {pw_dist_mat.shape}.")
+
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots/pairwise_distance_matrices"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", "pairwise_distance_heatmap.png")
+
+    if backend.lower() == "seaborn":
+        sns.set()
+        pair_dist_df = pd.DataFrame(pw_dist_mat)
+        fig, ax = plt.subplots(figsize=(12, 10))
+        sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
+        plt.title(kwargs.get("title", "Pairwise Distance Heatmap"))
+        plt.xlabel(kwargs.get("xlabel", "Data Point"))
+        plt.ylabel(kwargs.get("ylabel", "Data Point"))
+        xtick_labels = kwargs.get("xtick_labels")
+        ytick_labels = kwargs.get("ytick_labels", xtick_labels)
+        # Set custom x-tick labels if provided
+        if xtick_labels:
+            ax.set_xticklabels(xtick_labels, rotation=90)
+        if ytick_labels:
+            ax.set_yticklabels(ytick_labels, rotation=0)
+
+        # Save the plot to the specified directory with the specified file name
+        plot_path = save_dir / save_filename
+        fig.savefig(plot_path)
+
+        # Show the plot
+        plt.tight_layout()
+        plt.show()
+
+    else:
+        raise ValueError(
+            f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
+        )
+
+
+# ========================================
+# Function: plot_binary_matrix_heatmap
+# ========================================
+def plot_binary_matrix_heatmap(
+    matrix: np.ndarray, backend: str = "seaborn", **kwargs
+) -> None:
+    """Plots a heatmap of a binary-valued matrix.
+
+    Parameters:
+        matrix (np.ndarray): The binary-valued matrix to be plotted.
+        backend (str): Plotting package to use. Options: "seaborn" or "matplotlib".
+        title (str, optional): Title of the plot.
+        xlabel (str, optional): Label for the x-axis.
+        ylabel (str, optional): Label for the y-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        ytick_labels (list, optional): Custom labels for the y-axis ticks.
+        save_dir (str or Path, optional): Directory to save the plot.
+        save_filename (str, optional): File name to save the plot.
+
+    Returns:
+        None
+    """
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", "binary_matrix_heatmap.png")
+
+    if backend.lower() == "seaborn":
+        fig, ax = plt.subplots(figsize=(12, 6))
+        heatmap = sns.heatmap(matrix, ax=ax, cbar=False)
+
+        # Set custom y-tick labels if provided
+        ytick_labels = kwargs.get("ytick_labels")
+        if ytick_labels:
+            ax.set_yticklabels(ytick_labels, rotation=0)
+
+        # Set title and axis labels from kwargs
+        ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
+        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
+        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+
+        # Extract the colormap from the heatmap
+        cmap = heatmap.collections[0].cmap
+        # Normalize the values for the colormap
+        norm = plt.Normalize(vmin=0, vmax=1)
+        color_0 = cmap(norm(0))
+        color_1 = cmap(norm(1))
+
+        # Create custom legend
+        legend_elements = [
+            Patch(facecolor=color_0, edgecolor="black", label="absent"),
+            Patch(facecolor=color_1, edgecolor="black", label="present"),
+        ]
+        ax.legend(handles=legend_elements, loc="upper right", title="Legend")
+
+        # Save the plot to the specified directory with the specified file name
+        plot_path = save_dir / save_filename
+        fig.savefig(plot_path)
+
+        # Show the plot
+        plt.tight_layout()
+        plt.show()
+
+    else:
+        raise ValueError(
+            f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
+        )

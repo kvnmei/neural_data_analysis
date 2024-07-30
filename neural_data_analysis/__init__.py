@@ -26,7 +26,7 @@ from .analysis import (
 from .plotting import (
     model_performance_by_brain_area,
     model_performance_by_time,
-    pairwise_distance_heatmap,
+    plot_pairwise_distance_heatmap,
     plot_confusion_matrix,
     plot_ecdf,
     plot_model_predictions,
@@ -38,6 +38,8 @@ from .plotting import (
     compute_psth,
     compute_psth_per_category,
     plot_gantt_bar_chart,
+    create_rose_plot,
+    plot_binary_matrix_heatmap,
 )
 from .utils import (
     correct_filepath,
