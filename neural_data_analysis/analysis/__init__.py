@@ -24,6 +24,13 @@ from .MLPModel import (
 )
 from .stats import t_test
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
+from .text_processing import (
+    get_synonyms_wordnet,
+    get_stem,
+    create_word_groups,
+    reduce_word_list_synonyms,
+    create_excluded_words,
+)
 
 __version__ = "0.0.1"
 __description__ = "A package for the data analysis pipeline of data validation, data wrangling, and hypothesis testing."

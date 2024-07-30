@@ -3,10 +3,16 @@ channels:
   - defaults
 dependencies:
   - python=3.11
-  - numpy
-  - bokeh
   - black
-  - matplotlib
-  - scikit-learn
-  - seaborn
+  # analysis
+  - numpy
   - pandas
+  - scikit-learn
+  # plotting
+  - matplotlib
+  - seaborn
+  - bokeh
+  # pip installs
+  - pip
+  - pip:
+      - nltk

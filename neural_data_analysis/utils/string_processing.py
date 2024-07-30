@@ -38,6 +38,10 @@ def remove_lateralization(name: str) -> str:
         name = name.replace("Left ", "")
     elif name.startswith("Right "):
         name = name.replace("Right ", "")
+    elif name.endswith("_left"):
+        name = name.replace("_left", "")
+    elif name.endswith("_right"):
+        name = name.replace("_right", "")
     # elif name == "RSPE":
     #     print(f"Brain area: {name} has no lateralization.")
     else:

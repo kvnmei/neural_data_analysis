@@ -21,6 +21,11 @@ from .analysis import (
     TextEmbedder,
     SGPTEmbedder,
     brain_area_dict,
+    get_stem,
+    get_synonyms_wordnet,
+    create_word_groups,
+    reduce_word_list_synonyms,
+    create_excluded_words,
 )
 
 from .plotting import (

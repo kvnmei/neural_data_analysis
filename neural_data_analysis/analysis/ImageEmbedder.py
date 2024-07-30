@@ -19,7 +19,6 @@ import torch
 import torch.nn as nn
 import torchvision
 import yaml
-from moviepy.video.io.VideoFileClip import VideoFileClip
 from torchvision import transforms
 from torchvision.models import (
     resnet50,
