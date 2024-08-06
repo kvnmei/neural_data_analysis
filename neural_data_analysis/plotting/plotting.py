@@ -33,6 +33,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
 from matplotlib.patches import Patch
 
+
 def plot_histogram(data):
     """
     Given a list of values, plot a histogram of the count/percentage of the values.
@@ -443,7 +444,7 @@ def create_rose_plot(df, neuron_id, custom_order=None) -> None:
         labels = [label for label in custom_order if label in labels]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     values = [
-        neuron_data[neuron_data["label"] == label]["importance_rank"].mean()
+        (1450 - neuron_data[neuron_data["label"] == label]["importance_rank"])
         for label in labels
     ]
 
