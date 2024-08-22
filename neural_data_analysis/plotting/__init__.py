@@ -12,7 +12,7 @@ from .plotting import (
     plot_tsne_projections,
     plot_variance_explained,
     plot_histogram,
-    create_rose_plot,
+    create_polar_plot_tuning_curve,
     plot_binary_matrix_heatmap,
 )
 from .raster_psth import (

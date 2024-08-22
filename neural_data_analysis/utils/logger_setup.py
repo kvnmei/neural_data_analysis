@@ -5,6 +5,16 @@ from pathlib import Path
 def setup_logger(
     logger_name: str = "logger", log_filepath: Path = Path("console.log")
 ) -> logging.Logger:
+    """
+    Set up a custom logger with a file handler and a console handler.
+
+    Parameters:
+        logger_name:
+        log_filepath:
+
+    Returns:
+        logger (logging.Logger): A custom logger with a file handler and a console handler.
+    """
     # Create a custom logger
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
@@ -33,6 +43,12 @@ def setup_logger(
 
 
 def setup_default_logger():
+    """
+    Set up a default logger with a console handler.
+
+    Returns:
+        logger (logging.Logger): A default logger with a console handler.
+    """
     # Create a logger
     logger = logging.getLogger("default")
     logger.setLevel(logging.INFO)

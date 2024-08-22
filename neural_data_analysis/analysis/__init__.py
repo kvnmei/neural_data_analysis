@@ -15,8 +15,17 @@ from .model_evaluation import (
     calculate_model_performance,
     average_across_iterations,
 )
+from .NeuralPopulation import NeuralPopulation
 from .Neuron import Neuron
-from .population import dataframe_from_cells, subset_cells, brain_area_dict
+from .population import (
+    dataframe_from_cells,
+    subset_cells,
+)
+from ..constants import (
+    brain_area_dict,
+    brain_area_abbreviations_lower,
+    brain_area_abbreviations_upper,
+)
 from .single_neuron import calc_firing_rates
 
 from .MLPModel import (

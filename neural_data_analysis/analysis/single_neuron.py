@@ -2,8 +2,8 @@
 Functions for single neuron analysis.
 
 """
-from typing import List
 
+from typing import List
 import numpy as np
 
 
@@ -38,5 +38,3 @@ def calc_firing_rates(
         spikes_subset = spike_times[(spike_times > start) & (spike_times < end)]
         firing_rates[i] = len(spikes_subset) / bin_size
     return firing_rates
-
-

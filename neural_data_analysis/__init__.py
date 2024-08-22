@@ -13,6 +13,7 @@ from .analysis import (
     Event,
     LinearModelWrapper,
     MLPModelWrapper,
+    NeuralPopulation,
     Neuron,
     calculate_model_performance,
     ResNet50Embedder,
@@ -20,12 +21,17 @@ from .analysis import (
     t_test,
     TextEmbedder,
     SGPTEmbedder,
-    brain_area_dict,
     get_stem,
     get_synonyms_wordnet,
     create_word_groups,
     reduce_word_list_synonyms,
     create_excluded_words,
+)
+
+from .constants import (
+    brain_area_dict,
+    brain_area_abbreviations_lower,
+    brain_area_abbreviations_upper,
 )
 
 from .plotting import (
@@ -43,21 +49,23 @@ from .plotting import (
     compute_psth,
     compute_psth_per_category,
     plot_gantt_bar_chart,
-    create_rose_plot,
+    create_polar_plot_tuning_curve,
     plot_binary_matrix_heatmap,
 )
 from .utils import (
     correct_filepath,
     create_order_index,
+    create_filename_from_dict,
     get_brain_area_abbreviation,
     get_nwb_files,
     recursive_dict_update,
     remove_lateralization,
     setup_logger,
     setup_default_logger,
+    randomize_binary_array_by_group,
 )
 
 __author__ = "Kevin J. M. Le"
 __email__ = "kvnjmle@caltech.edu"
 __version__ = "0.0.1"
-__all__ = [f for f in dir() if not f.startswith("_")]
+f__all__ = [f for f in dir() if not f.startswith("_")]

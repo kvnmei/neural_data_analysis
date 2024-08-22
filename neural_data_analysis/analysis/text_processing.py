@@ -16,9 +16,9 @@ def download_resource(resource):
         nltk.download(resource, quiet=True)
 
 
-download_resource("stopwords")
-download_resource("wordnet")
-download_resource("averaged_perceptron_tagger")
+# download_resource("stopwords")
+# download_resource("wordnet")
+# download_resource("averaged_perceptron_tagger")
 
 
 # Function to get the part of speech for lemmatization
@@ -76,6 +76,9 @@ def create_word_groups(words):
     known_plurals = {
         "men": "man",
         "women": "woman",
+        "boys": "boy",
+        "girls": "girl",
+        "children": "child",
         "people": "person",
         "suits": "suit",
         "shirts": "shirt",

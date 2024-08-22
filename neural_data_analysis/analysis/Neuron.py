@@ -9,6 +9,7 @@ class Neuron:
     def __init__(self):
         self.id = None
         self.brain_area = None
+        self.brain_area_abbreviation = None
         self.spike_times = None
         self.patient = None
         self.patient_session = None

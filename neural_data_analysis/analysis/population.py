@@ -6,13 +6,13 @@ Functions:
 
 """
 
-
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from typing import List
 
 from neural_data_analysis.analysis import Neuron
+from neural_data_analysis.constants import brain_area_dict
 
 
 def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[Neuron]:
@@ -34,6 +34,9 @@ def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[
         if attribute == "brain_area":
             if cells[i].brain_area in brain_area_dict[value]:
                 subset_idx.append(i)
+            # DEBUGGING
+            # else:
+            #     print(cells[i].brain_area)
         elif getattr(cells[i], attribute) == value:
             subset_idx.append(i)
 
@@ -51,70 +54,3 @@ def dataframe_from_cells(cells: np.array([Neuron])) -> DataFrame:
         }
     )
     return cells_df
-
-
-brain_area_shortnames = {
-    "all": "all",
-    "Amygdala": "amy",
-    "amygdala": "amy",
-    "Hippocampus": "hpc",
-    "hippocampus": "hpc",
-    "orbitofrontal cortex": "ofc",
-    "anterior cingulate cortex": "acc",
-    "ACC": "acc",
-    "supplementary motor area": "sma",
-    "preSMA": "presma",
-    "vmPFC": "vmpfc",
-    # "RSPE": "rspe",
-}
-
-brain_area_dict = {
-    "all": [
-        "amy",
-        "amygdala",
-        "Amygdala",
-        "AMY",
-        "hpc",
-        "hippocampus",
-        "Hippocampus",
-        "HPC",
-        "ofc",
-        "orbitofrontal cortex",
-        "OFC",
-        "acc",
-        "ACC",
-        "anterior cingulate cortex",
-        "sma",
-        "SMA",
-        "supplementary motor area",
-        "presma",
-        "preSMA",
-        "pre-supplementary motor area",
-        "vmpfc",
-        "vmPFC",
-        "ventromedial prefrontal cortex",
-    ],
-    "mtl": [
-        "amy",
-        "AMY",
-        "amygdala",
-        "Amygdala",
-        "hpc",
-        "HPC",
-        "hippocampus",
-        "Hippocampus",
-    ],
-    "amygdala": ["amy", "AMY", "amygdala", "Amygdala"],
-    "amy": ["amy", "AMY", "amygdala", "Amygdala"],
-    "hippocampus": ["hpc", "HPC", "hippocampus", "Hippocampus"],
-    "hpc": ["hpc", "HPC", "hippocampus", "Hippocampus"],
-    "orbitofrontal cortex": ["orbitofrontal cortex", "ofc", "OFC"],
-    "ofc": ["orbitofrontal cortex", "ofc", "OFC"],
-    "anterior cingulate cortex": ["anterior cingulate cortex", "acc", "ACC"],
-    "acc": ["anterior cingulate cortex", "acc", "ACC"],
-    "ACC": ["anterior cingulate cortex", "acc", "ACC"],
-    "supplementary motor area": ["supplementary motor area", "SMA", "sma"],
-    "sma": ["supplementary motor area", "SMA", "sma"],
-    "presma": ["pre-supplementary motor area", "preSMA", "presma"],
-    "vmpfc": ["ventromedial prefrontal cortex", "vmPFC", "vmpfc"],
-}

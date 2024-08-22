@@ -424,7 +424,7 @@ def plot_design_matrix(design_matrix):
 # ========================================
 # Function: create_rose_plot
 # ========================================
-def create_rose_plot(df, neuron_id, custom_order=None) -> None:
+def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_plot="importance_avg_abs", **kwargs) -> None:
     """Create a rose plot for a single neuron.
 
     Parameters:
@@ -435,36 +435,59 @@ def create_rose_plot(df, neuron_id, custom_order=None) -> None:
     Returns:
         None
     """
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", f"polar_plot_{neuron_id}_{metric_to_plot}.png")
+
     # Subset the DataFrame for the given neuron
-    neuron_data = df[df["cell_id"] == neuron_id]
+    neuron_df = df[df["cell_id"] == neuron_id]
+    print(f"There are {len(neuron_df)} values for cell [{neuron_id}].")
 
     # Prepare the data for plotting
-    labels = neuron_data["label"].unique()
+    labels = neuron_df["label"].unique()
     if custom_order:
         labels = [label for label in custom_order if label in labels]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    values = [
-        (1450 - neuron_data[neuron_data["label"] == label]["importance_rank"])
-        for label in labels
-    ]
+    if metric_to_plot == "importance_avg_abs":
+        values = [neuron_df[neuron_df["label"] == label]["importance_avg_abs"].values[0] for label in labels]
+    elif metric_to_plot == "importance_avg":
+        values = [neuron_df[neuron_df["label"] == label]["importance_avg"].values[0] for label in labels]
+    elif metric_to_plot == "importance_rank":
+        highest_rank = df["importance_rank"].max()
+        values = [highest_rank - neuron_df[neuron_df["label"] == label]["importance_rank"].values[0] for label in labels]
+    elif metric_to_plot == 'importance_ratio':
+        values = [neuron_df[neuron_df["label"] == label]["importance_ratio"].values[0] for label in labels]
+    else:
+        raise ValueError(f"Invalid metric to plot: {metric_to_plot}")
+    print(f"Plotting the rose plot for neuron [{neuron_id}] with metric [{metric_to_plot}].")
 
     # Repeat the first value to close the circle
     angles += angles[:1]
     values += values[:1]
 
     # Create the rose plot
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(12, 12), subplot_kw=dict(polar=True))
     ax.plot(angles, values, "o-", linewidth=2)
     ax.fill(angles, values, alpha=0.25)
 
     # Add labels to the plot
     ax.set_yticklabels([])
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels)
-
+    ax.set_xticklabels(labels, fontsize=16, fontweight="regular")
+    ax.tick_params(pad=20)
     # Add title
-    ax.set_title(f"Rose Plot for Neuron: {neuron_id}", size=20, y=1.1)
+    ax.set_title(f"Rose Plot for Neuron {neuron_id}\nMetric: {metric_to_plot}", size=20, y=1.1)
 
+    # Save the plot to the specified directory with the specified file name
+    plot_path = save_dir / save_filename
+    fig.savefig(plot_path)
+
+    # Show the plot
+    plt.tight_layout()
     plt.show()
 
 
