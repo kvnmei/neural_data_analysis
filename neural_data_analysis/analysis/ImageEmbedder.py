@@ -321,6 +321,14 @@ class BLIP2Embedder(ImageEmbedder):
         # self.text_prompt = "A picture of "
 
     def preprocess(self, images: torch.Tensor) -> dict:
+        """Preprocess images for pretrained BLIP2Embedder
+
+        Parameters:
+            images (torch.Tensor): tensor of images in shape (n_images, n_channels, height, width)
+
+        Returns:
+            images (dict): processed images are stored in key "pixel_values", each image shape is (3, 224, 224)
+        """
         # images = _check_image_tensor_dimensions(images)
         images = [torchvision.transforms.ToPILImage()(img) for img in images]
         images = self.processor(
@@ -338,9 +346,66 @@ class BLIP2Embedder(ImageEmbedder):
         print("Embedding with BLIP2...")
         with torch.no_grad():
             for i in tqdm(range(0, len(images), self.batch_size)):
+                # ------- debugging code start ------------
+                ###### do the input images make sense? ####
+                # batch = images[100:101]
+                # image_tensor = batch.squeeze(0)
+                # image_np = image_tensor.numpy().transpose(1,2,0)
+                # import matplotlib.pyplot as plt
+                # plt.imshow(image_np)
+                # plt.show()
+                # ------- debugging code end -------------
+
                 batch = images[i : i + self.batch_size]
                 # batch = batch.to(self.device)
                 batch = self.preprocess(batch)
+
+                # ------- debugging code start ------------
+                ######## is the preprocessing introducing any bugs? ######
+                # batch = images[100:101]
+                # batch_PIL = [torchvision.transforms.ToPILImage()(img) for img in batch]
+                # import matplotlib.pyplot as plt
+                # plt.imshow(np.asarray(batch_PIL[0]))
+                # plt.show()
+                #
+                #
+                # import requests
+                # img_url = 'https://storage.googleapis.com/sfr-vision-language-research/BLIP/demo.jpg'
+                # raw_image = Image.open(requests.get(img_url, stream=True).raw).convert('RGB')
+                # inputs = self.processor(images=raw_image, return_tensors="pt")
+                # out = self.encoder.generate(**inputs)
+                # self.processor.decode(out[0], skip_special_tokens=True)
+                #
+                # batch_processed = self.processor(
+                #     images=batch_PIL,
+                #     return_tensors="pt",
+                # )
+                # print(batch_processed["pixel_values"].dtype)
+                # test_image = batch_processed["pixel_values"]
+                # test_image = test_image.squeeze(0)
+                # test_image = test_image.numpy()
+                # test_image = test_image.transpose(1,2,0)
+                # plt.imshow(test_image)
+                # plt.show()
+                #
+                # batch_processed = self.processor(
+                #     images=batch_PIL,
+                #     return_tensors="pt",
+                #     # padding=True,
+                # )
+                # print(batch_processed["pixel_values"].dtype)
+                # batch_processed = batch_processed.to(self.device)
+                # image_tensor = batch_processed["pixel_values"] # assuming 1 image
+                # image_tensor = image_tensor.squeeze(0)  # Now the shape is [3, 224, 224]
+                # image_np = image_tensor.cpu().numpy()
+                # image_np = image_np.transpose(1,2,0)
+                # plt.imshow(image_np)
+                # plt.show()
+                #
+                # ids = self.encoder.generate(**batch_processed)
+                # text = self.processor.batch_decode(ids, skip_special_tokens=True)
+                # ------- debugging code end --------------
+
                 if isinstance(self.encoder, torch.nn.DataParallel):
                     ids = self.encoder.module.generate(**batch)
                 else:

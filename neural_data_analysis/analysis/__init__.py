@@ -1,5 +1,5 @@
 from .Electrode import Electrode
-from .Event import Event
+from .Event import Event, SceneChange, NewOld, VideoFrame
 from .embedder_utils import embedder_config, embedder_from_spec, create_image_embeddings
 from .ImageEmbedder import (
     CLIPEmbedder,
@@ -31,7 +31,7 @@ from .single_neuron import calc_firing_rates
 from .MLPModel import (
     MLPModelWrapper,
 )
-from .stats import t_test
+from neural_data_analysis.statistics.stats import t_test
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 from .text_processing import (
     get_synonyms_wordnet,

@@ -17,7 +17,7 @@ import io
 import os
 from pathlib import Path
 from typing import List
-
+from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,6 +32,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import pairwise_distances
 from matplotlib.patches import Patch
+from matplotlib.colors import ListedColormap
 
 
 def plot_histogram(data):
@@ -424,7 +425,9 @@ def plot_design_matrix(design_matrix):
 # ========================================
 # Function: create_rose_plot
 # ========================================
-def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_plot="importance_avg_abs", **kwargs) -> None:
+def create_polar_plot_tuning_curve(
+    df, neuron_id, custom_order=None, metric_to_plot="importance_avg_abs", **kwargs
+) -> None:
     """Create a rose plot for a single neuron.
 
     Parameters:
@@ -441,7 +444,9 @@ def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_p
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Set the default save file name if not provided
-    save_filename = kwargs.get("save_filename", f"polar_plot_{neuron_id}_{metric_to_plot}.png")
+    save_filename = kwargs.get(
+        "save_filename", f"polar_plot_{neuron_id}_{metric_to_plot}.png"
+    )
 
     # Subset the DataFrame for the given neuron
     neuron_df = df[df["cell_id"] == neuron_id]
@@ -453,17 +458,32 @@ def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_p
         labels = [label for label in custom_order if label in labels]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
     if metric_to_plot == "importance_avg_abs":
-        values = [neuron_df[neuron_df["label"] == label]["importance_avg_abs"].values[0] for label in labels]
+        values = [
+            neuron_df[neuron_df["label"] == label]["importance_avg_abs"].values[0]
+            for label in labels
+        ]
     elif metric_to_plot == "importance_avg":
-        values = [neuron_df[neuron_df["label"] == label]["importance_avg"].values[0] for label in labels]
+        values = [
+            neuron_df[neuron_df["label"] == label]["importance_avg"].values[0]
+            for label in labels
+        ]
     elif metric_to_plot == "importance_rank":
         highest_rank = df["importance_rank"].max()
-        values = [highest_rank - neuron_df[neuron_df["label"] == label]["importance_rank"].values[0] for label in labels]
-    elif metric_to_plot == 'importance_ratio':
-        values = [neuron_df[neuron_df["label"] == label]["importance_ratio"].values[0] for label in labels]
+        values = [
+            highest_rank
+            - neuron_df[neuron_df["label"] == label]["importance_rank"].values[0]
+            for label in labels
+        ]
+    elif metric_to_plot == "importance_ratio":
+        values = [
+            neuron_df[neuron_df["label"] == label]["importance_ratio"].values[0]
+            for label in labels
+        ]
     else:
         raise ValueError(f"Invalid metric to plot: {metric_to_plot}")
-    print(f"Plotting the rose plot for neuron [{neuron_id}] with metric [{metric_to_plot}].")
+    print(
+        f"Plotting the rose plot for neuron [{neuron_id}] with metric [{metric_to_plot}]."
+    )
 
     # Repeat the first value to close the circle
     angles += angles[:1]
@@ -480,7 +500,9 @@ def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_p
     ax.set_xticklabels(labels, fontsize=16, fontweight="regular")
     ax.tick_params(pad=20)
     # Add title
-    ax.set_title(f"Rose Plot for Neuron {neuron_id}\nMetric: {metric_to_plot}", size=20, y=1.1)
+    ax.set_title(
+        f"Rose Plot for Neuron {neuron_id}\nMetric: {metric_to_plot}", size=20, y=1.1
+    )
 
     # Save the plot to the specified directory with the specified file name
     plot_path = save_dir / save_filename
@@ -492,9 +514,9 @@ def create_polar_plot_tuning_curve(df, neuron_id, custom_order=None, metric_to_p
 
 
 # ========================================
-# Function: plot_pairwise_distance_heatmap
+# Function: plot_heatmap_pairwise_distance
 # ========================================
-def plot_pairwise_distance_heatmap(
+def plot_heatmap_pairwise_distance(
     pw_dist_mat: np.ndarray,
     backend: str = "seaborn",
     **kwargs,
@@ -505,6 +527,8 @@ def plot_pairwise_distance_heatmap(
         pw_dist_mat (np.ndarray): Pairwise distance (square, symmetric) matrix.
         backend (str): Plotting package to use.
             Options: "seaborn" or "matplotlib"
+
+    Optional kwargs:
         title (str): Title of the plot.
         xlabel (str): Label for the x-axis.
         xtick_labels (list, optional): Custom labels for the x-axis ticks.
@@ -528,7 +552,6 @@ def plot_pairwise_distance_heatmap(
     save_filename = kwargs.get("save_filename", "pairwise_distance_heatmap.png")
 
     if backend.lower() == "seaborn":
-        sns.set()
         pair_dist_df = pd.DataFrame(pw_dist_mat)
         fig, ax = plt.subplots(figsize=(12, 10))
         sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
@@ -558,9 +581,9 @@ def plot_pairwise_distance_heatmap(
 
 
 # ========================================
-# Function: plot_binary_matrix_heatmap
+# Function: plot_heatmap_binary_matrix
 # ========================================
-def plot_binary_matrix_heatmap(
+def plot_heatmap_binary_matrix(
     matrix: np.ndarray, backend: str = "seaborn", **kwargs
 ) -> None:
     """Plots a heatmap of a binary-valued matrix.
@@ -568,6 +591,8 @@ def plot_binary_matrix_heatmap(
     Parameters:
         matrix (np.ndarray): The binary-valued matrix to be plotted.
         backend (str): Plotting package to use. Options: "seaborn" or "matplotlib".
+
+    Optional kwargs:
         title (str, optional): Title of the plot.
         xlabel (str, optional): Label for the x-axis.
         ylabel (str, optional): Label for the y-axis.
@@ -587,43 +612,157 @@ def plot_binary_matrix_heatmap(
     # Set the default save file name if not provided
     save_filename = kwargs.get("save_filename", "binary_matrix_heatmap.png")
 
-    if backend.lower() == "seaborn":
-        fig, ax = plt.subplots(figsize=(12, 6))
-        heatmap = sns.heatmap(matrix, ax=ax, cbar=False)
+    # Get xtick labels from kwargs if provided
+    xtick_labels = kwargs.get("xtick_labels")
+    ytick_labels = kwargs.get("ytick_labels")
 
-        # Set custom y-tick labels if provided
-        ytick_labels = kwargs.get("ytick_labels")
-        if ytick_labels:
-            ax.set_yticklabels(ytick_labels, rotation=0)
+    # Calculate the number of x labels either from xtick_labels or a default number
+    if xtick_labels is not None:
+        num_xlabels = len(xtick_labels)
+    else:
+        xtick_labels = np.arange(matrix.shape[1])
+        num_xlabels = matrix.shape[1]
+
+    if ytick_labels is not None:
+        num_ylabels = len(ytick_labels)
+    else:
+        ytick_labels = np.arange(matrix.shape[0])
+        num_ylabels = matrix.shape[0]
+
+    max_width = 12  # Maximum allowable width in inches
+    max_length = 10  # Maximum allowable length in inches
+
+    # Dynamically calculate the figure size with a ceiling
+    fig_width = min(
+        12, num_xlabels * 0.5 + 2.0
+    )  # Width based on the number of columns, with a max of 12 inches
+    fig_length = min(
+        num_ylabels * 0.5 + 2.0, max_length
+    )  # Height based on the number of rows, with a max of 10 inches
+
+    if backend.lower() == "seaborn":
+        cmap = ListedColormap(["lightblue", "darkblue"])
+        fig, ax = plt.subplots(figsize=(fig_width, fig_length))
+        heatmap = sns.heatmap(
+            matrix,
+            ax=ax,
+            xticklabels=xtick_labels,
+            # yticklabels=ytick_labels,
+            cmap=cmap,
+            cbar=False,
+        )
 
         # Set title and axis labels from kwargs
         ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
         ax.set_xlabel(kwargs.get("xlabel", "Columns"))
         ax.set_ylabel(kwargs.get("ylabel", "Rows"))
 
-        # Extract the colormap from the heatmap
-        cmap = heatmap.collections[0].cmap
-        # Normalize the values for the colormap
-        norm = plt.Normalize(vmin=0, vmax=1)
-        color_0 = cmap(norm(0))
-        color_1 = cmap(norm(1))
+        # # Extract the colormap from the heatmap
+        # cmap = heatmap.collections[0].cmap
+        # # Normalize the values for the colormap
+        # norm = plt.Normalize(vmin=0, vmax=1)
+        # color_0 = cmap(norm(0))
+        # color_1 = cmap(norm(1))
 
         # Create custom legend
+        # legend_elements = [
+        #     Patch(facecolor=color_0, edgecolor="black", label="absent"),
+        #     Patch(facecolor=color_1, edgecolor="black", label="present"),
+        # ]
+
         legend_elements = [
-            Patch(facecolor=color_0, edgecolor="black", label="absent"),
-            Patch(facecolor=color_1, edgecolor="black", label="present"),
+            Patch(facecolor=cmap[0], edgecolor="black", label="absent"),
+            Patch(facecolor=cmap[1], edgecolor="black", label="present"),
         ]
         ax.legend(handles=legend_elements, loc="upper right", title="Legend")
 
-        # Save the plot to the specified directory with the specified file name
-        plot_path = save_dir / save_filename
-        fig.savefig(plot_path)
+        plt.tight_layout()
+
+        if save_filename:
+            # Create the plots directory if it doesn't exist
+            fig.savefig(save_dir / save_filename)
 
         # Show the plot
-        plt.tight_layout()
         plt.show()
 
     else:
         raise ValueError(
             f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
         )
+
+
+# =======================================
+# Function: plot_heatmap_matrix
+# ========================================
+def plot_heatmap_matrix(
+    matrix: np.ndarray,
+    backend: str = "seaborn",
+    **kwargs,
+) -> None:
+    """
+    Plots a heatmap of a matrix of values.
+
+    Parameters:
+        matrix (np.ndarray): The matrix to be plotted.
+
+    Optional kwargs:
+        title (str, optional): Title of the plot.
+        xlabel (str, optional): Label for the x-axis.
+        ylabel (str, optional): Label for the y-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        ytick_labels (list, optional): Custom labels for the y-axis ticks.
+        save_dir (str or Path, optional): Directory to save the plot.
+        save_filename (str, optional): File name to save the plot.
+
+    Returns:
+        None
+    """
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", "matrix_heatmap.png")
+
+    # Get xtick labels from kwargs if provided
+    xtick_labels = kwargs.get("xtick_labels")
+
+    # Calculate the number of x labels either from xtick_labels or a default number
+    if xtick_labels is not None:
+        num_xlabels = len(xtick_labels)
+    else:
+        num_xlabels = matrix.shape[1]
+
+    # Determine the figure width based on the number of x labels
+    fig_width = max(12, num_xlabels * 0.75)  # Minimum width of 12, and 0.75 per label
+    fig_length = (
+        matrix.shape[0] * 1.0 + 2.0
+    )  # 1.0 per row, 2.0 for title and x/y labels
+
+    if backend.lower() == "seaborn":
+        fig, ax = plt.subplots(figsize=(fig_width, fig_length))
+        sns.heatmap(
+            matrix,
+            ax=ax,
+            cmap="viridis",
+            annot=True,
+            xticklabels=xtick_labels,
+            yticklabels=kwargs.get("ytick_labels"),
+        )
+
+        # Set title and axis labels from kwargs
+        ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
+        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
+        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+
+        plt.tight_layout()
+
+        if save_filename:
+            # Create the plots directory if it doesn't exist
+            fig.savefig(save_dir / save_filename)
+
+        plt.show()
+
+    else:
+        raise ValueError(f"Invalid backend: {backend}. Choose from 'seaborn'.")

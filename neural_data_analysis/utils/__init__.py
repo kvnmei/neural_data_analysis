@@ -10,12 +10,6 @@ from .utils import (
     recursive_dict_update,
 )
 from .logger_setup import setup_logger, setup_default_logger
-from .random_controls import (
-    randomize_binary_array_by_group,
-    find_consecutive_sequences_in_binary_array,
-    reconstruct_binary_array_from_groups,
-)
-
 
 __version__ = "0.0.1"
 __description__ = "A package for miscellaneous functions."

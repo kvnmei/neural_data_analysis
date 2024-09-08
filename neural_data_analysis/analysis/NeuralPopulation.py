@@ -16,6 +16,23 @@ class NeuralPopulation:
         else:
             self.logger = logger
 
+    def __repr__(self):
+        # Class name
+        details = f"Class: {self.__class__.__name__}"
+        details = f"Number of Neurons: {len(self.neurons)}"
+        # Class attributes
+        details += f"Attributes: \n"
+        for key in self.__dict__:
+            details += f"  {key}: {type(self.__dict__[key])}\n"
+        # Class methods
+        methods = [
+            method
+            for method in dir(self)
+            if callable(getattr(self, method)) and not method.startswith("__")
+        ]
+        details += "Methods:\n" + "\n".join(f"  {method}" for method in methods)
+        return details
+
     def count_cells_by_region(self, brain_areas: list = []) -> tuple[list, list]:
         """
         Returns the brain areas and the number of cells in each area.

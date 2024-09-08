@@ -14,8 +14,10 @@ from sklearn.metrics import (
     cohen_kappa_score,
     confusion_matrix,
 )
+
 # from tabulate import tabulate
 import logging
+import warnings
 
 
 def calculate_model_performance(
@@ -32,13 +34,14 @@ def calculate_model_performance(
         "bin_size",
         "embedding",
     ),
+    classes: list = None,
 ) -> pd.DataFrame:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
     calculate the model performance for each sample (row) or feature (column).
     Appends the metric scores to the input dataframe in-place.
 
-    Args:
+    Parameters:
         df (pd.DataFrame): dataframe containing the ground truth and predictions
         metrics (list[str]): list of metrics to compute between predictions and ground truth
         metrics_for_shuffled_data (list[str]): list of metrics to compute for the shuffled data
@@ -50,6 +53,7 @@ def calculate_model_performance(
         avg_across_variables (bool): if True, average the metric across the features or samples
         shuffle_ground_truth (bool): if True, shuffle the ground truth labels to get a baseline score
         columns_to_keep (list[str]): list of the original dataframe columns to keep in the new dataframe
+        classes (list): list of classes for classification problems
 
     Returns:
         averaged_df (pd.DataFrame): DataFrame containing the averaged data
@@ -85,6 +89,7 @@ def calculate_model_performance(
         by_feature=by_feature,
         gt_col=model_eval_input_cols["ground_truth"],
         pred_col=model_eval_input_cols["predictions"],
+        classes=classes,
     )
 
     sanity_check = False
@@ -171,33 +176,44 @@ def append_model_scores(
     gt_col: str = "ground_truth",
     pred_col: str = "predictions",
     metric_col_names: dict = None,
+    classes: list = None,
 ) -> None:
     """
     Given a dataframe with "ground_truth" and "predictions" columns,
     calculate for each row of the dataframe the model performance.
+
     The ground truth and prediction should be shape (n_samples, n_features)
     If calculating by feature, the output will be shape (n_features) after calculating the metric across samples.
     If calculating by sample, the output will be shape (n_samples) after calculating the metric across features.
     Appends the metric scores to the input dataframe in place.
 
-    Args:
+    Parameters:
         df: dataframe containing the ground truth and predictions
         metrics: list of metrics to compute between predictions and ground truth
         pred_col: name of the column containing the predictions
         gt_col: name of the column containing the ground truth
         by_feature: if True, evaluate performance for each feature separately
             if False, evaluate performance for each sample separately
+        metric_col_names (dict): a dictionary that maps the metric name (key) to the column name in the dataframe (value)
+        classes: list of classes for classification problems
 
     Returns:
-        None, appends the metrics to the input df
+        None, appends the metrics to the input df in place
     """
+    # Create a tuple of metrics if only one metric is passed
     if isinstance(metrics, str):
         metrics = tuple(metrics)
 
+    # Calculate the model performance for each row of the dataframe
+    # Typically, each row is a cross-validation fold
     scores = []
     for i in range(len(df)):
         row_score = evaluate_model_performance(
-            df[gt_col][i], df[pred_col][i], metric=metrics, by_feature=by_feature
+            df[gt_col][i],
+            df[pred_col][i],
+            metric=metrics,
+            by_feature=by_feature,
+            classes=classes,
         )
         scores.append(row_score)
 
@@ -215,34 +231,43 @@ def evaluate_model_performance(
     predictions: np.ndarray,
     metric: list[str],
     by_feature=True,
+    classes: list = None,
 ) -> dict[str, np.ndarray]:
     """
-    Args:
+    Evaluate the performance of a model using a given metric.
+    Takes the ground truth and predictions as input to evaluate the model performance.
+
+    Parameters:
         ground_truth (np.ndarray): (n_samples, n_features)
         predictions (np.ndarray: (n_samples, n_features)
         metric (tuple[str]): metric to evaluate performance
         by_feature (bool): if True, evaluate performance for each feature separately
                         if False, evaluate performance for each sample separately
+        classes (list): list of classes for classification problems
 
     Returns:
-        scores (list): list of scores for each feature or sample
+        scores (dict): list of scores for each feature or sample
     """
+    # If the ground truth and predictions are 1d, reshape them to 2d
     ground_truth = reshape_into_2d(ground_truth)
     predictions = reshape_into_2d(predictions)
 
-    # print(classification_report(ground_truth, predictions))
-    # f1_score(ground_truth, predictions, average=None)
-
+    # For each metric, calculate the score
     scores = {}
     for metric_name in metric:
         # for multilabel binary classification
+
         if metric_name in ["precision", "recall", "fscore", "support"]:
-            (
-                scores["precision"],
-                scores["recall"],
-                scores["fscore"],
-                scores["support"],
-            ) = precision_recall_fscore_support(ground_truth, predictions)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)
+                (
+                    scores["precision"],
+                    scores["recall"],
+                    scores["fscore"],
+                    scores["support"],
+                ) = precision_recall_fscore_support(
+                    ground_truth, predictions, labels=classes
+                )
             break
         else:
             metric_score = []
@@ -251,7 +276,7 @@ def evaluate_model_performance(
                 for feature_idx in range(ground_truth.shape[1]):
                     feat_gt = ground_truth[:, feature_idx]
                     feat_pred = predictions[:, feature_idx]
-                    score = evaluate_metric(feat_gt, feat_pred, metric_name)
+                    score = evaluate_metric(feat_gt, feat_pred, metric_name, classes)
                     metric_score.append(score)
 
                     # r2 = r2_score(ground_truth[:, feature_idx], predictions[:, feature_idx])
@@ -275,7 +300,9 @@ def evaluate_model_performance(
                 for i in range(ground_truth.shape[0]):
                     sample_gt = ground_truth[i]
                     sample_pred = predictions[i]
-                    score = evaluate_metric(sample_gt, sample_pred, metric_name)
+                    score = evaluate_metric(
+                        sample_gt, sample_pred, metric_name, classes
+                    )
                     metric_score.append(score)
 
             # r2 = r2_score(ground_truth[i], predictions[i])
@@ -310,15 +337,21 @@ def evaluate_model_performance(
     return scores
 
 
-def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
+def evaluate_metric(
+    ground_truth: np.ndarray, predictions: np.ndarray, metric: str, classes: list = None
+) -> float:
     """
-    Args:
-        ground_truth (np.array):
-        predictions (np.array):
-        metric (str):
+    Evaluate the performance of a model using a given metric.
+    Takes the ground truth and predictions as input to evaluate the model performance.
+
+    Parameters:
+        ground_truth (np.array): the ground truth values
+        predictions (np.array): the predicted values
+        metric (str): the metric to evaluate the model performance
+        classes (list): list of classes for classification problems
 
     Returns:
-
+        score (float): the score of the model performance
     """
     if (metric == "correlation") or (metric == "corr"):
         score = pearsonr(ground_truth, predictions)[0]
@@ -333,41 +366,72 @@ def evaluate_metric(ground_truth: np.array, predictions: np.array, metric: str):
     elif (metric == "accuracy") or (metric == "acc"):
         score = np.mean(ground_truth == predictions)
     elif (metric == "balanced_accuracy") or (metric == "balanced_acc"):
-        score = balanced_accuracy_score(ground_truth, predictions)
+        # UserWarning: y_pred contains classes not in y_true
+        # UserWarning: A single label was found in 'y_true' and 'y_pred'. For the confusion matrix to have the correct shape, use the 'labels' parameter to pass all known labels.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            score = balanced_accuracy_score(
+                y_true=ground_truth, y_pred=predictions, adjusted=False
+            )
     elif metric == "cohen_kappa":
         # Calculate confusion matrix
         try:
-            tn, fp, fn, tp = confusion_matrix(ground_truth, predictions).ravel()
+            # tn, fp, fn, tp = confusion_matrix(
+            #     ground_truth, predictions, labels=classes
+            # ).ravel()
+            # score = cohen_kappa_score(ground_truth, predictions)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter("always", category=UserWarning)
+                warnings.simplefilter("always", category=RuntimeWarning)
+                score = cohen_kappa_score(ground_truth, predictions)
+                if caught_warnings:
+                    print(
+                        "Warning while calculating the confusion matrix for Cohen's Kappa score."
+                    )
+                    if len(set(ground_truth)) == 1 and len(set(predictions)) == 1:
+                        print(
+                            "Ground truth and predictions only contain one unique class."
+                        )
+                    else:
+                        print("Other issue.")
+                    print("Returning the raw accuracy instead of Cohen's Kappa...")
+                    score = np.mean(ground_truth == predictions)
+
         except ValueError:
-            if len(set(ground_truth)) == 1:
-                print("Ground truth only contains one unique class.")
-            elif len(set(predictions)) == 1:
-                print("Predictions only contain one unique class.")
+            print(
+                "ValueError while calculating the confusion matrix for Cohen's Kappa score."
+            )
+            if len(set(ground_truth)) == 1 and len(set(predictions)) == 1:
+                print("Ground truth and predictions only contain one unique class.")
             else:
                 print("Other issue.")
-            print("Returning the raw accuracy.")
+            print("Returning the raw accuracy instead of Cohen's Kappa...")
             score = np.mean(ground_truth == predictions)
-            return score
 
-        # Calculate p0 (observed agreement)
-        p0 = (tn + tp) / (tn + fp + fn + tp)
-        # Calculate pe (expected agreement)
-        p_pred0 = (tn + fn) / (tn + fp + fn + tp)
-        p_pred1 = (tp + fp) / (tn + fp + fn + tp)
-        p_actual0 = (tn + fp) / (tn + fp + fn + tp)
-        p_actual1 = (tp + fn) / (tn + fp + fn + tp)
+        # # ======== Calculate Cohen's Kappa manually ========
+        """
+        The manually calculated Cohen's Kappa is consistent with the sklearn implementation.
+        """
 
-        pe = (p_pred0 * p_actual0) + (p_pred1 * p_actual1)
-        # Calculate Cohen's Kappa
-        kappa = (p0 - pe) / (1 - pe)
+        # # Calculate p0 (observed agreement)
+        # p0 = (tn + tp) / (tn + fp + fn + tp)
 
-        print(f"Observed Agreement (p0): {p0:.2f}")
-        print(f"Expected Agreement (pe): {pe:.2f}")
-        print(f"Cohen's Kappa: {kappa:.2f}")
+        # # Calculate pe (expected agreement)
+        # p_pred0 = (tn + fn) / (tn + fp + fn + tp)
+        # p_pred1 = (tp + fp) / (tn + fp + fn + tp)
+        # p_actual0 = (tn + fp) / (tn + fp + fn + tp)
+        # p_actual1 = (tp + fn) / (tn + fp + fn + tp)
+        # pe = (p_pred0 * p_actual0) + (p_pred1 * p_actual1)
 
-        score = cohen_kappa_score(ground_truth, predictions)
+        # # Calculate Cohen's Kappa
+        # kappa = (p0 - pe) / (1 - pe)
 
-        print(f"Cohen's Kappa (sklearn): {score:.2f}")
+        # print(f"Observed Agreement (p0): {p0:.2f}")
+        # print(f"Expected Agreement (pe): {pe:.2f}")
+        # print(f"Cohen's Kappa: {kappa:.2f}")
+
+        # score = cohen_kappa_score(ground_truth, predictions)
+        # print(f"Cohen's Kappa (sklearn): {score:.2f}")
     else:
         raise ValueError(f"Metric {metric} not supported.")
     return score

@@ -34,3 +34,23 @@ class Event:
         ]
         details += "Methods:\n" + "\n".join(f"  {method}" for method in methods)
         return details
+
+
+class NewOld(Event):
+    def __init__(self):
+        super().__init__()
+        self.actual_response = None
+        self.response_correct = None
+
+
+class SceneChange(Event):
+    def __init__(self):
+        super().__init__()
+
+
+class VideoFrame(Event):
+    def __init__(self):
+        super().__init__()
+        self.frame_number = None
+        self.frame_time = None
+        self.duration = 0.040

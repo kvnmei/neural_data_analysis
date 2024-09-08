@@ -11,6 +11,9 @@ from .analysis import (
     Electrode,
     evaluate_model_performance,
     Event,
+    SceneChange,
+    NewOld,
+    VideoFrame,
     LinearModelWrapper,
     MLPModelWrapper,
     NeuralPopulation,
@@ -37,7 +40,7 @@ from .constants import (
 from .plotting import (
     model_performance_by_brain_area,
     model_performance_by_time,
-    plot_pairwise_distance_heatmap,
+    plot_heatmap_pairwise_distance,
     plot_confusion_matrix,
     plot_ecdf,
     plot_model_predictions,
@@ -50,7 +53,11 @@ from .plotting import (
     compute_psth_per_category,
     plot_gantt_bar_chart,
     create_polar_plot_tuning_curve,
-    plot_binary_matrix_heatmap,
+    plot_heatmap_binary_matrix,
+    plot_heatmap_matrix,
+)
+from .statistics import (
+    randomize_binary_array_by_group,
 )
 from .utils import (
     correct_filepath,
@@ -62,7 +69,6 @@ from .utils import (
     remove_lateralization,
     setup_logger,
     setup_default_logger,
-    randomize_binary_array_by_group,
 )
 
 __author__ = "Kevin J. M. Le"
