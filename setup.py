@@ -6,8 +6,8 @@ with open("README.md", "r") as f:
 setuptools.setup(
     name="neural-data-analysis",
     version="0.0.1",
-    author="Kevin Mei",
-    author_email="kmei@caltech.edu",
+    author="Kevin J. M. Le",
+    author_email="kvnjmle@caltech.edu",
     description="Neural data analysis tools.",
     long_description=long_description,
     long_description_content_type="text/markdown",

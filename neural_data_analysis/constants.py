@@ -1,3 +1,11 @@
+"""
+
+brain_area_dict
+brain_area_abbreviations_lower
+brain_area_abbreviations_upper
+embedder_configs
+"""
+
 brain_area_dict = {
     "all": [
         # AMYGDALA
@@ -102,4 +110,52 @@ brain_area_abbreviations_lower = {
     "ventral_medial_prefrontal_cortex": "vmpfc",
     "vmPFC": "vmpfc",
     "RSPE": "rspe",
+}
+
+embedder_configs = {
+    "VGG16Embedder": {"embedding_name": "vgg16", "batch_size": 64},
+    "ResNet50Embedder": {"embedding_name": "resnet", "batch_size": 64},
+    "CLIPEmbedder": {
+        "embedding_name": "clip",
+        "batch_size": 512,
+        "model": "openai/clip-vit-base-patch32",
+        "processor": "openai/clip-vit-base-patch32",
+    },
+    "DETREmbedder": {
+        "embedding_name": "detr",
+        "embedding_description": "DEtection TRansformer for object detection",
+        "model": "facebook/detr-resnet-50",
+        "processor": "facebook/detr-resnet-50",
+        "detection_threshold": 0.5,
+        "batch_size": 16,
+    },
+    "BLIPEmbedder": {
+        "embedding_name": "blip",
+        "embedding_description": "BLIP: Learning Better Language Models by Encoding Images in Text Sequences",
+        "batch_size": 64,
+        "model": "Salesforce/blip-image-captioning-base",
+        "processor": "Salesforce/blip-image-captioning-base",
+    },
+    "BLIP2Embedder": {
+        "embedding_name": "blip2",
+        "embedding_description": "BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and "
+        "Large Language Models",
+        "batch_size": 1,
+        "model": "Salesforce/blip2-opt-2.7b",
+        "processor": "Salesforce/blip2-opt-2.7b",
+        "make_specific_binary_vector": False,
+    },
+    "DINOEmbedder": {
+        "embedding_name": "dino",
+        "embedding_description": "DINO: Emerging Properties in Self-Supervised Vision Transformers",
+        "batch_size": 1,
+        "model": "facebook/dinov2-base",
+        "processor": "facebook/dinov2-base",
+    },
+    "ViT_B_16Embedder": {
+        "embedding_name": "vit",
+        "embedding_description": "Vision Transformer Base 16",
+        "batch_size": 64,
+    },
+    "SGPTEmbedder": {"embedding_name": "sgpt"},
 }

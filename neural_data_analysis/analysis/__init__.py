@@ -1,6 +1,6 @@
 from .Electrode import Electrode
-from .Event import Event, SceneChange, NewOld, VideoFrame
-from .embedder_utils import embedder_config, embedder_from_spec, create_image_embeddings
+from .Event import Event, SceneChange, NewOld, VideoFrame, SceneBoundary
+from .embedder_utils import embedder_from_spec, create_image_embeddings
 from .ImageEmbedder import (
     CLIPEmbedder,
     ResNet50Embedder,
@@ -21,17 +21,13 @@ from .population import (
     dataframe_from_cells,
     subset_cells,
 )
-from ..constants import (
-    brain_area_dict,
-    brain_area_abbreviations_lower,
-    brain_area_abbreviations_upper,
-)
+
 from .single_neuron import calc_firing_rates
 
 from .MLPModel import (
     MLPModelWrapper,
 )
-from neural_data_analysis.statistics.stats import t_test
+
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 from .text_processing import (
     get_synonyms_wordnet,

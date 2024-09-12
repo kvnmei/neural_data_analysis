@@ -1,6 +1,5 @@
 from .analysis import (
     average_across_iterations,
-    embedder_config,
     embedder_from_spec,
     append_model_scores,
     calc_firing_rates,
@@ -12,6 +11,7 @@ from .analysis import (
     evaluate_model_performance,
     Event,
     SceneChange,
+    SceneBoundary,
     NewOld,
     VideoFrame,
     LinearModelWrapper,
@@ -21,7 +21,6 @@ from .analysis import (
     calculate_model_performance,
     ResNet50Embedder,
     subset_cells,
-    t_test,
     TextEmbedder,
     SGPTEmbedder,
     get_stem,
@@ -35,6 +34,7 @@ from .constants import (
     brain_area_dict,
     brain_area_abbreviations_lower,
     brain_area_abbreviations_upper,
+    embedder_configs,
 )
 
 from .plotting import (
@@ -63,6 +63,7 @@ from .utils import (
     correct_filepath,
     create_order_index,
     create_filename_from_dict,
+    extract_audio_from_video,
     get_brain_area_abbreviation,
     get_nwb_files,
     recursive_dict_update,

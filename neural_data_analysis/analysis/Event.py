@@ -43,14 +43,25 @@ class NewOld(Event):
         self.response_correct = None
 
 
-class SceneChange(Event):
-    def __init__(self):
-        super().__init__()
-
-
 class VideoFrame(Event):
     def __init__(self):
         super().__init__()
         self.frame_number = None
         self.frame_time = None
         self.duration = 0.040
+
+
+class SceneChange(Event):
+    def __init__(self):
+        super().__init__()
+
+
+class SceneBoundary(Event):
+    def __init__(self):
+        super().__init__()
+        self.video_id = None
+        self.frame_number = None
+        self.frame_time = None
+        self.frame_rate = None
+        self.duration = None
+        self.boundary_type: str = ""

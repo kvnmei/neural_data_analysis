@@ -1,6 +1,7 @@
 name: nda
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.11
   - black
@@ -12,7 +13,10 @@ dependencies:
   - matplotlib
   - seaborn
   - bokeh
+  # machine learning
+  - shap
   # pip installs
   - pip
   - pip:
       - nltk
+      - xgboost

@@ -15,7 +15,9 @@ from neural_data_analysis.analysis import Neuron
 from neural_data_analysis.constants import brain_area_dict
 
 
-def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[Neuron]:
+def subset_cells(
+    cells: np.array([Neuron]), attribute: str, value: str, logger=None
+) -> List[Neuron]:
     """
     This function subsets out cells by brain region.
 
@@ -27,7 +29,10 @@ def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[
     Returns:
         cells_subset (np.array): a list of Neuron objects with the specified attribute value(s)
     """
-
+    if logger:
+        logger.info(f"Subsetting cells by {attribute} = {value}")
+    else:
+        print(f"Subsetting cells by {attribute} = {value}")
     subset_idx = []
     assert hasattr(cells[0], attribute)
     for i in np.arange(len(cells)):
@@ -41,6 +46,14 @@ def subset_cells(cells: np.array([Neuron]), attribute: str, value: str) -> List[
             subset_idx.append(i)
 
     cells_subset = cells[subset_idx]
+    if logger:
+        logger.info(
+            f"Number of cells in full set: {len(cells)}. Number of cells in subset: {len(cells_subset)}"
+        )
+    else:
+        print(
+            f"Number of cells in full set: {len(cells)}. Number of cells in subset: {len(cells_subset)}"
+        )
     return cells_subset
 
 
