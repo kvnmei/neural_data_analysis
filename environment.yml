@@ -14,7 +14,7 @@ dependencies:
   - seaborn
   - bokeh
   # machine learning
-  - shap
+  - conda-forge::shap
   # pip installs
   - pip
   - pip:

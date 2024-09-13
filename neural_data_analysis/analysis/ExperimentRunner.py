@@ -82,17 +82,20 @@ class Experiment:
         Initialize the ExperimentRunner class with the configuration parameters.
 
         Parameters:
-            config (dict): dictionary of configuration parameters
+            config (dict): dictionary of configuration parameters, typically saved and loaded as a yaml file.
+            load_only (bool): Whether to initialize the class without running the experiment.
+                If false, will create a save directory and output the config file and log file to the directory.
+
         """
+
         self.config: dict = config["ExperimentRunner"]
 
+        # whether to create a save directory and log file
         if load_only:
             self.logger = setup_default_logger()
         else:
             # Create a save directory for the experiment results.
-            self.experiment_name: str = (
-                f"{date.today()}_results_{self.config['type']}_{self.config['model']}_{self.config['experiment_name']}"
-            )
+            self.experiment_name: str = f"{date.today()}_results_{self.config['type']}_{self.config['model']}_{self.config['experiment_name']}"
             self.save_dir: Path = self._create_save_dir()
 
             # Create a logger object to log the experiment.
@@ -110,24 +113,6 @@ class Experiment:
                 f"COMPLETED: Created save directory [{str(self.save_dir)}]."
             )
 
-        # Load the data
-        self.video_data_loader: VideoDataLoader = VideoDataLoader(
-            config=config, logger=self.logger
-        )
-        self.neural_data_loader: NeuralDataLoader = NeuralDataLoader(
-            config=config, logger=self.logger
-        )
-
-        # Add positive controls to the neural data loader.
-        if self.config["control_neurons"]["add_control_neurons"]:
-            for label in self.config["control_neurons"]["positive_control_labels"]:
-                self.neural_data_loader.add_neuron_positive_control(
-                    self.video_data_loader.embeddings["blip2"][:, 0],
-                    label_vector_name=label,
-                    high_fr_value=self.config["control_neurons"]["high_fr_value"],
-                )
-            self.neural_data_loader.add_neuron_random_control(high_fr_value=3)
-
         # Get the neural and video data that will be used for the experiment based on the target variables in the config file.
         self.neural_data: dict = self.get_neural_variable(
             self.config["neural_target_variable"]
@@ -135,33 +120,6 @@ class Experiment:
         self.video_data: dict = self.get_video_variable(
             self.config["video_target_variable"]
         )
-
-        # save the blip2 words to hdf5 file
-        # self.video_data_loader.blip2_words_df.to_hdf(
-        #     self.save_dir / "blip2_words.h5", key="blip2_words", mode="w"
-        # )
-        # self.logger.info("Saved blip2 words to hdf5 file.")
-
-        # Mask out transition frames in the video data and the neural data.
-        if self.video_data_loader.config["mask_transition_frames"]:
-            self.logger.info(
-                f"Masking out frames that are transitions between shots in the video data..."
-            )
-            self.video_data_loader.mask_transition_frames()
-            self.logger.info(
-                f"Masking out frames that are transitions between shots in the neural data..."
-            )
-            for neural_key in self.neural_data.keys():
-                self.neural_data[neural_key] = self.neural_data[neural_key][
-                    self.video_data_loader.masked_frames_index
-                ]
-                self.logger.info(
-                    f"Masked out transition frames for [{neural_key}]. Shape is {self.neural_data[neural_key].shape}."
-                )
-            self.logger.info(
-                f"COMPLETED: Masked out transition frames. The neural data and the video data should have the same "
-                f"number of samples.\n"
-            )
 
     def __repr__(self):
         # Class name
