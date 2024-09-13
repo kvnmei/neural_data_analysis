@@ -1,9 +1,39 @@
 from typing import List, Tuple
 
 import numpy as np
+from ..plotting import plot_heatmap_binary_matrix
 
 
-def randomize_binary_array_by_group(arr, seed=None, return_seed=False):
+def shift_binary_array(arr: np.ndarray, shift: int, plot: bool = False) -> np.ndarray:
+    """
+    Shifts a binary array by a specified number of positions.
+
+    Args:
+        arr (np.ndarray): binary array of 0s and 1s
+        shift (int): number of positions to shift the array
+
+    Returns:
+        shifted_arr (np.ndarray): binary array shifted by the specified number of positions
+    """
+    shifted_arr = np.roll(arr, shift)
+
+    if plot:
+        matrix = np.vstack([arr, shifted_arr])
+        plot_heatmap_binary_matrix(
+            matrix,
+            title="Original and Shifted Embeddings",
+            xlabel="Frames",
+            ylabel=None,
+            ytick_labels=["Original", "Shifted"],
+            plot_all_xtick_labels=False,
+        )
+
+    return shifted_arr
+
+
+def shuffle_binary_array_by_group(
+    arr: np.ndarray, seed: int = None, plot: bool = False, return_seed: bool = False
+) -> np.ndarray:
     """
     Randomizes the order of groups of 1s in a binary array. The number and size of the groups of 1s are preserved.
 
@@ -20,15 +50,43 @@ def randomize_binary_array_by_group(arr, seed=None, return_seed=False):
         np.random.seed(seed)
 
     rng = np.random.default_rng(seed=seed)
-    groups, total_zeros = find_consecutive_sequences_in_binary_array(arr)
-    rng.shuffle(groups)
+    groups_original, total_zeros_original = find_consecutive_sequences_in_binary_array(
+        arr
+    )
+    len_of_groups_original = [len(group) for group in groups_original]
+    print(
+        f"total groups of consecutive 1s before shuffling: {len(groups_original)}, total 0s: {total_zeros_original}"
+    )
+    # print(f"length of groups: {len_of_groups_original}")
+
+    # shuffles the groups in place
+    rng.shuffle(groups_original)
+
     zero_distribution = distribute_zeros(groups, total_zeros, seed)
-    randomized_arr = reconstruct_binary_array_from_groups(groups, zero_distribution)
+    shuffled_arr = reconstruct_binary_array_from_groups(groups, zero_distribution)
+    groups_shuffled, total_zeros_shuffled = find_consecutive_sequences_in_binary_array(
+        shuffled_arr
+    )
+    len_of_groups_shuffled = [len(group) for group in groups_shuffled]
+    print(
+        f"total groups of consecutive 1s after shuffling: {len(groups)}, total 0s: {total_zeros}"
+    )
+    # print(f"length of groups: {len_of_groups_shuffled}")
+    if plot:
+        matrix = np.vstack([arr, shuffled_arr])
+        plot_heatmap_binary_matrix(
+            matrix,
+            title="Original and Shuffled Embeddings",
+            xlabel="Frames",
+            ylabel=None,
+            ytick_labels=["Original", "Shuffled"],
+            plot_all_xtick_labels=False,
+        )
 
     if return_seed:
-        return randomized_arr, seed
+        return shuffled_arr, seed
     else:
-        return randomized_arr
+        return shuffled_arr
 
 
 def find_consecutive_sequences_in_binary_array(arr) -> tuple[list[list[int]], int]:
@@ -40,14 +98,16 @@ def find_consecutive_sequences_in_binary_array(arr) -> tuple[list[list[int]], in
 
     Returns:
         groups (list): list of lists of 1s
+        total_zeros (int): total number of 0s in the array
     """
     groups = []
     current_group = []
     total_zeros = 0
 
+    # goes through every value of the array
     for val in arr:
         if val == 1:
-            if current_group:  # not empty, then append
+            if current_group:  # not empty, then append 1 to the current group
                 current_group.append(1)
             else:
                 current_group = [1]  # empty, then add the first 1

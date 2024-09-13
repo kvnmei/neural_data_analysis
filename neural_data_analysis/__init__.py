@@ -57,7 +57,8 @@ from .plotting import (
     plot_heatmap_matrix,
 )
 from .statistics import (
-    randomize_binary_array_by_group,
+    shift_binary_array,
+    shuffle_binary_array_by_group,
 )
 from .utils import (
     correct_filepath,

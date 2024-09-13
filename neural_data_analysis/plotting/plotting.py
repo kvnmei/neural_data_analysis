@@ -597,6 +597,7 @@ def plot_heatmap_binary_matrix(
         xlabel (str, optional): Label for the x-axis.
         ylabel (str, optional): Label for the y-axis.
         xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        plot_all_xtick_labels (bool, optional): Whether to plot all the xtick labels.
         ytick_labels (list, optional): Custom labels for the y-axis ticks.
         save_dir (str or Path, optional): Directory to save the plot.
         save_filename (str, optional): File name to save the plot.
@@ -641,16 +642,24 @@ def plot_heatmap_binary_matrix(
     )  # Height based on the number of rows, with a max of 10 inches
 
     if backend.lower() == "seaborn":
-        cmap = ListedColormap(["lightblue", "darkblue"])
+        colors = ["lightblue", "darkblue"]
+        cmap = ListedColormap(colors)
         fig, ax = plt.subplots(figsize=(fig_width, fig_length))
         heatmap = sns.heatmap(
             matrix,
             ax=ax,
-            xticklabels=xtick_labels,
+            # xticklabels=xtick_labels,
             # yticklabels=ytick_labels,
             cmap=cmap,
             cbar=False,
         )
+
+        if kwargs.get("plot_all_xtick_labels", False):
+            ax.set_xticklabels(xtick_labels)
+        # else:
+        #     ax.xaxis.set_major_locator(plt.MaxNLocator())
+
+        ax.set_yticklabels(ytick_labels)
 
         # Set title and axis labels from kwargs
         ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
@@ -671,8 +680,8 @@ def plot_heatmap_binary_matrix(
         # ]
 
         legend_elements = [
-            Patch(facecolor=cmap[0], edgecolor="black", label="absent"),
-            Patch(facecolor=cmap[1], edgecolor="black", label="present"),
+            Patch(facecolor=colors[0], edgecolor="black", label="absent"),
+            Patch(facecolor=colors[1], edgecolor="black", label="present"),
         ]
         ax.legend(handles=legend_elements, loc="upper right", title="Legend")
 

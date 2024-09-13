@@ -1,5 +1,6 @@
 from .random_controls import (
-    randomize_binary_array_by_group,
+    shift_binary_array,
+    shuffle_binary_array_by_group,
 )
 
 __version__ = "0.0.1"
