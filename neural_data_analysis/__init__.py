@@ -35,6 +35,7 @@ from .constants import (
     brain_area_abbreviations_lower,
     brain_area_abbreviations_upper,
     embedder_configs,
+    gpt_configs,
 )
 
 from .plotting import (

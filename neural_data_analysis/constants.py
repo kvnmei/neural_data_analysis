@@ -4,6 +4,7 @@ brain_area_dict
 brain_area_abbreviations_lower
 brain_area_abbreviations_upper
 embedder_configs
+gpt_configs
 """
 
 brain_area_dict = {
@@ -158,4 +159,12 @@ embedder_configs = {
         "batch_size": 64,
     },
     "SGPTEmbedder": {"embedding_name": "sgpt"},
+}
+
+gpt_configs = {
+    "gpt-4": {
+        "gpt_engine": "gpt-4",
+        "openai_api_key": None,
+        "pregenerate_prompts": False,
+    }
 }
