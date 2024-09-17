@@ -1,6 +1,7 @@
 from .Electrode import Electrode
-from .Event import Event, SceneChange, NewOld, VideoFrame, SceneBoundary
 from .embedder_utils import embedder_from_spec, create_image_embeddings
+from .Event import Event, SceneChange, NewOld, VideoFrame, SceneBoundary
+from .Experiment import Experiment
 from .ImageEmbedder import (
     CLIPEmbedder,
     ResNet50Embedder,

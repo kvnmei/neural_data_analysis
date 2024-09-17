@@ -1,0 +1,128 @@
+NeuralLoader:
+  neural_data_path: data/000623
+  sessions_to_include:
+    - all
+  #    - P58CSR1
+  brain_areas:
+    - all
+    #    - mtl
+    - amy
+    - hpc
+    - vmpfc
+    - acc
+    - presma
+  neural_data_type:
+    - su
+    - lfp
+  bin_centers:
+    start: 0.7
+    end: 1.2
+    n_bins: 1
+  bin_sizes:
+    - 0.500
+  #  - 1.000
+  # downsample cells to be the same across brain areas
+  downsample_cells: true
+  seed: 42
+  #  add_control_neurons: false
+  positive_control_fr: 3
+  # remove neurons that don't spike during the movie session
+  filter_cells: true
+  # convert firing rates to standard scores
+  normalize_fr: false
+  # concatenate the firings rates across all timepoints specified in bin_centers
+  combine_timepoints: false
+  lfp_source:
+    - LFP_micro
+  #    - LFP_macro
+  lfp_power:
+    - theta
+    - gamma
+    - hfb
+  gaussian_kernel_sigma: 30
+
+VideoLoader:
+  video_path: data/stimulus/short_downsampled.avi
+  embedders_to_use:
+    #    - ResNet50Embedder
+    #    - CLIPEmbedder
+    - BLIP2Embedder
+    #    - blip2_labels
+    #    - DETREmbedder
+    #    - rgbhsvl
+    #    - gist
+  #    - moten
+  #  - face_regressors
+  #  - blip
+  #  - object_detection
+  # removes the frames that transition between shots
+  seed: 42
+  mask_transition_frames: false
+  # how to reduce dimensionality of the video embeddings for KMeans clustering
+  dim_reduction_method: none
+  normalize_before_pca: false # if dim red is pca, normalize before pca
+  pca_dimensions: 3 # if dim red is pca, number of dimensions to reduce to
+  cumulative_variance: 0.5
+  n_kmeans_clusters: 5
+  word_labels:
+    nonsense_control: true
+    random_control: true
+
+ExperimentRunner:
+  is_debug: true
+  project_name: bang-youre-dead
+  config_file: config.yaml
+  config_description: This is the default config for debugging.
+  experiment_name: main
+  experiment_description: This is the default configuration.
+  seed: 42
+  # decoding model or encoding model
+  type: decoding
+  neural_target_variable: population_fr # population_fr, combined_timepoints
+  video_target_variable: kmeans_cluster # kmeans_cluster, pca, shot_scene
+  model: xgb # options: mlp, linear, xgb
+  n_folds: 10
+  kfolds_shuffle: false
+  kfolds_stratify: false
+  block_frames:
+    do_blocking: false
+    block_size: 50
+    block_by: frames # options: frames, shots
+  compute_importances: true
+  shap_explainer: deep
+  control_neurons:
+    add_control_neurons: false
+    positive_control_labels:
+      - man
+      - gun
+      - suitcase
+    high_fr_value: 3
+
+  LinearModel:
+    problem_type: multilabel_binary_classification
+    backend: sklearn
+
+  MLPModel:
+    lr: 0.001
+    max_epochs: 100
+    num_layers: 5
+    hidden_dims: 100
+    problem_type: binary_classification # options: regression, multi_class_classification, binary_classification
+    batch_size: 256
+    save_weights: false
+
+  XGBModel:
+    max_depth: 10
+    n_estimators: 2000
+    learning_rate: 0.01
+    max_leaves: 20
+
+  LinearRegression:
+    type: pls # options: ridge, lasso, ols, pls
+    targets: single # options: single, multi
+
+gpt:
+  openai_api_key: null
+  gpt_engine: "gpt-4"
+  pregenerate_prompts: false
+

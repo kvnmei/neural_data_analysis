@@ -2,7 +2,7 @@
 import itertools
 import pickle
 import socket
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 import logging
 import shap
@@ -10,12 +10,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 import yaml
-from neural_data_analysis import (
-    MLPModelWrapper,
-    setup_logger,
-    LinearModelWrapper,
-    setup_default_logger,
-)
+from ..utils import add_default_repr
 from scipy.special import expit
 from sklearn.model_selection import KFold, StratifiedKFold
 from tqdm import tqdm
@@ -34,6 +29,9 @@ from sklearn.multioutput import MultiOutputClassifier
 
 
 # noinspection PyShadowingNames
+
+
+@add_default_repr
 class Experiment:
     """
     Class for running experiments.
@@ -95,8 +93,8 @@ class Experiment:
             self.logger = setup_default_logger()
         else:
             # Create a save directory for the experiment results.
-            self.experiment_name: str = f"{date.today()}_results_{self.config['type']}_{self.config['model']}_{self.config['experiment_name']}"
-            self.save_dir: Path = self._create_save_dir()
+            self.experiment_name: str = self.create_experiment_name()
+            self.save_dir: Path = self.create_save_dir()
 
             # Create a logger object to log the experiment.
             setup_logger("logger", Path(f"{self.save_dir}/{self.experiment_name}.log"))
@@ -121,21 +119,35 @@ class Experiment:
             self.config["video_target_variable"]
         )
 
-    def __repr__(self):
-        # Class name
-        details = f"Class: {self.__class__.__name__}"
-        # Class attributes
-        details += f"Attributes: \n"
-        for key in self.__dict__:
-            details += f"  {key}: {type(self.__dict__[key])}\n"
-        # Class methods
-        methods = [
-            method
-            for method in dir(self)
-            if callable(getattr(self, method)) and not method.startswith("__")
-        ]
-        details += "Methods:\n" + "\n".join(f"  {method}" for method in methods)
-        return details
+    def create_experiment_name(self):
+        project_name = self.config.get("project_name", "project")
+        experiment_name = self.config.get("experiment_name", "experiment")
+        date = datetime.now().strftime("%Y-%m-%d")
+        full_experiment_name = f"{date}_{project_name}_{self.config['type']}_{self.config['model']}_{experiment_name}"
+        return full_experiment_name
+
+    def create_save_dir(self) -> Path:
+        """Create a save directory for the results.
+
+        The directory name is made up of the experiment name and an index.
+
+        Returns:
+            save_dir (Path): Path to the save directory.
+
+        """
+        results_id = 1
+        experiment_name = self.experiment_name
+        save_dir = Path(
+            f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
+        )
+        if Path(save_dir).exists():
+            while Path(save_dir).exists():
+                results_id += 1
+                save_dir = Path(
+                    f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
+                )
+        save_dir.mkdir()
+        return save_dir
 
     def get_video_variable(self, var_name: str = "raw_embedding") -> dict:
         """Return the video feature to be used.
@@ -813,29 +825,6 @@ class Experiment:
             "=========================== COMPLETED: Experiment Done. ==============================\n"
         )
         return results_df
-
-    def _create_save_dir(self) -> Path:
-        """Create a save directory for the results.
-
-        The directory name is made up of the experiment name and an index.
-
-        Returns:
-            save_dir (Path): Path to the save directory.
-
-        """
-        results_id = 1
-        experiment_name = self.experiment_name
-        save_dir = Path(
-            f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
-        )
-        if Path(save_dir).exists():
-            while Path(save_dir).exists():
-                results_id += 1
-                save_dir = Path(
-                    f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
-                )
-        save_dir.mkdir()
-        return save_dir
 
     def _save_config(self, config):
         config_filename = f"{self.experiment_name}_config.yaml"

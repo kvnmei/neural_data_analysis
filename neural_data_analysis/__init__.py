@@ -10,6 +10,7 @@ from .analysis import (
     Electrode,
     evaluate_model_performance,
     Event,
+    Experiment,
     SceneChange,
     SceneBoundary,
     NewOld,
@@ -60,8 +61,13 @@ from .plotting import (
 from .statistics import (
     shift_binary_array,
     shuffle_binary_array_by_group,
+    t_test,
+    check_normality,
+    check_homogeneity_of_variances,
+    plot_data_distribution,
 )
 from .utils import (
+    add_default_repr,
     correct_filepath,
     create_order_index,
     create_filename_from_dict,

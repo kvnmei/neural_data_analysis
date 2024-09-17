@@ -1,4 +1,5 @@
 from .audio_processing import extract_audio_from_video
+from .decorators import add_default_repr
 from .nwb_tools import get_nwb_files
 from .string_processing import (
     get_brain_area_abbreviation,
