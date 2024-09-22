@@ -18,7 +18,7 @@ from .model_evaluation import (
 )
 from .NeuralPopulation import NeuralPopulation
 from .Neuron import Neuron
-from .population import (
+from .neural_population import (
     dataframe_from_cells,
     subset_cells,
 )

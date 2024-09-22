@@ -13,10 +13,12 @@ from neural_data_analysis.analysis.TextEmbedder import SGPTEmbedder
 import yaml
 import numpy as np
 from moviepy.editor import VideoFileClip
+from ..constants import embedder_configs
 
 
+# noinspection PyShadowingNames
 def embedder_from_spec(
-    embedder_name: str, device: str = None
+    embedder_name: str, embedder_configs=embedder_configs, device: str = None
 ) -> (
     ResNet50Embedder
     | CLIPEmbedder
@@ -31,6 +33,7 @@ def embedder_from_spec(
     Create an embedder from a specification dictionary.
 
     Args:
+        embedder_configs (dict): dictionary of embedder specifications
         embedder_name (str): name of Embedder to create
         device (str): device to use for embedding (cpu or cuda)
 
@@ -47,31 +50,31 @@ def embedder_from_spec(
     else:
         device = device
     if embedder_name == "VGG16Embedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return VGG16Embedder(spec, device)
     elif embedder_name == "ResNet50Embedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return ResNet50Embedder(spec, device)
     elif embedder_name == "CLIPEmbedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return CLIPEmbedder(spec, device)
     elif embedder_name == "DETREmbedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return DETREmbedder(spec, device)
     elif embedder_name == "DINOEmbedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return DINOEmbedder(spec, device)
     elif embedder_name == "BLIPEmbedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return BLIPEmbedder(spec, device)
     elif embedder_name == "BLIP2Embedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return BLIP2Embedder(spec, device)
     elif embedder_name == "ViT_B_16Embedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return ViTEmbedder(spec, device)
     elif embedder_name == "SGPTEmbedder":
-        spec = embedder_config[embedder_name]
+        spec = embedder_configs[embedder_name]
         return SGPTEmbedder(spec, device)
     else:
         raise NotImplementedError(f"Embedder {embedder_name} not implemented.")
@@ -98,7 +101,7 @@ def create_image_embeddings(
     embeddings = {}
     for embedder_name in embedder_list:
         print(f"Model {embedder_name}")
-        image_embedder = embedder_from_spec(embedder_config[embedder_name])
+        image_embedder = embedder_from_spec(embedder_name, embedder_configs)
         embedding = image_embedder.embed(images)
         embeddings[embedder_config[embedder_name]["embedding_name"]] = embedding
     return embeddings
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     args.device = "cuda"
 
     print("Embedder:", args.embedder)
-    embedder = embedder_from_spec(args.embedder, args.device)
+    embedder = embedder_from_spec(args.device, args.embedder)
     print(embedder)
     # images = torch.rand(32, 3, 224, 224)
     with open("config.yaml", "r") as file:

@@ -26,7 +26,7 @@ class TestRandomData(unittest.TestCase):
 
     def test_DETREmbedder(self):
         embedder_name = "DETREmbedder"
-        image_embedder = embedder_from_spec(embedder_name)
+        image_embedder = embedder_from_spec(, embedder_name
         embedding = image_embedder.embed(self.data)
 
 
@@ -53,7 +53,7 @@ class TestRealImage(unittest.TestCase):
 
     def test_DETREmbedder(self):
         embedder_name = "DETREmbedder"
-        image_embedder = embedder_from_spec(embedder_name)
+        image_embedder = embedder_from_spec(, embedder_name
         object_bounding_boxes = image_embedder.embed(self.data)
 
     def test_plot_object_detection_result(self, result, ax=None):

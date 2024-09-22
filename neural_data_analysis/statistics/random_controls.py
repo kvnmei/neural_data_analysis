@@ -47,9 +47,11 @@ def shuffle_binary_array_by_group(
         seed (int): seed used for randomization
     """
     if seed is None:
+        # generate a random seed if none is provided
         np.random.seed(seed)
 
     rng = np.random.default_rng(seed=seed)
+
     groups_original, total_zeros_original = find_consecutive_sequences_in_binary_array(
         arr
     )
@@ -62,20 +64,25 @@ def shuffle_binary_array_by_group(
     # shuffles the groups in place
     rng.shuffle(groups_original)
 
-    zero_distribution = distribute_zeros(groups, total_zeros, seed)
-    shuffled_arr = reconstruct_binary_array_from_groups(groups, zero_distribution)
+    zero_distribution = distribute_zeros(groups_original, total_zeros_original, seed)
+    shuffled_arr = reconstruct_binary_array_from_groups(
+        groups_original, zero_distribution
+    )
+
     groups_shuffled, total_zeros_shuffled = find_consecutive_sequences_in_binary_array(
         shuffled_arr
     )
     len_of_groups_shuffled = [len(group) for group in groups_shuffled]
     print(
-        f"total groups of consecutive 1s after shuffling: {len(groups)}, total 0s: {total_zeros}"
+        f"total groups of consecutive 1s after shuffling: {len(groups_shuffled)}, total 0s: {total_zeros_shuffled}"
     )
     # print(f"length of groups: {len_of_groups_shuffled}")
     if plot:
         matrix = np.vstack([arr, shuffled_arr])
         plot_heatmap_binary_matrix(
-            matrix,
+            # matrix[:, 1000:1500],
+            # matrix[:, 500:1000],
+            matrix[:, 9500:10000],
             title="Original and Shuffled Embeddings",
             xlabel="Frames",
             ylabel=None,
