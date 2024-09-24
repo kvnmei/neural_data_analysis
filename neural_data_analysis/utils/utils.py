@@ -91,10 +91,14 @@ def subset_out_class_imbalance(df) -> pd.DataFrame:
     """
     Given a dataframe with class imbalance, subset out the minimum number of samples from each class.
 
-    Returns:
+    Parameters:
+        df (pd.DataFrame): dataframe with a column "category" with class labels
 
+    Returns:
+        df_balanced (pd.DataFrame): balanced dataframe with the minimum number of samples from each class
     """
-    # find the minimum numbe of samples in a class
+    all_cats = df["category"].unique()
+    # find the minimum number of samples in a class
     min_samples = min([len(df[df["category"] == cat]) for cat in all_cats])
     # subset out the minimum number of samples from each class
     df_balanced = pd.DataFrame()

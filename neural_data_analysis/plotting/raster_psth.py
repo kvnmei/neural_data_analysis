@@ -1,3 +1,5 @@
+from typing import Tuple, Any
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
@@ -7,7 +9,7 @@ import pandas as pd
 import bokeh.layouts
 from bokeh.plotting import figure, show, output_file
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, Range1d, HoverTool
+from bokeh.models import ColumnDataSource, Range1d, HoverTool, Row
 
 
 def compute_psth(
@@ -103,7 +105,7 @@ def plot_raster_psth(
     plot_params: dict,
     backend: str = "bokeh",
     output_plot=False,
-) -> None:
+) -> tuple[Any, Any]:
     """
     Plots a raster and PSTH for spikes to an event. All raster/PSTH are for a single neuron's firing rate.
 
@@ -112,7 +114,7 @@ def plot_raster_psth(
     The PSTH would be the average firing rate across neurons for each bin, and may be grouped by category that neurons
      belong to (e.g., by brain region).
 
-    Args:
+    Parameters:
         raster_df (pd.DataFrame): Each row is an event or trial.
             Expected columns:
                 event_id (int): The event ID.
@@ -137,6 +139,7 @@ def plot_raster_psth(
                 figsize (tuple): The size of the figure.
 
         backend (str): What plotting package to use for plotting. Options are "bokeh"...
+        output_plot (bool): Whether to output the plot to a file or not.
 
     Returns:
 
@@ -245,7 +248,7 @@ def plot_raster_psth(
             return raster_plot, psth_plot
 
     elif backend == "seaborn":
-        sns.set(style="white", context="paper")
+        sns.set_theme(style="white", context="paper")
 
         # Creating subplots
         # noinspection PyTypeChecker
@@ -327,7 +330,7 @@ def plot_gantt_bar_chart(
     plot_params: dict,
     backend: str = "bokeh",
     output_plot: bool = False,
-) -> None:
+) -> figure:
     """
     Plot a Gantt bar chart with Bokeh.
 
@@ -346,6 +349,7 @@ def plot_gantt_bar_chart(
                 figsize (tuple): The size of the figure.
                 colors (list): The colors to use for the raster plot.
         backend (str): The plotting package to use.
+        output_plot (bool): Whether to output the plot to a file or not.
 
     Returns:
 

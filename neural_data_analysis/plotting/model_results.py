@@ -121,6 +121,9 @@ def model_performance_by_time(
 
     Args:
         df: data
+        df_avg: data averaged across iterations
+        metrics: model performance metrics to plot (should be in df)
+        backend: what plotting package to use
 
     Returns:
 
@@ -218,15 +221,18 @@ def plot_model_predictions(
         plt.show()
 
 
-
-def plot_confusion_matrix(confusion_mat: np.ndarray, labels: List[str] = None, backend: str = "sklearn"):
+def plot_confusion_matrix(
+    confusion_mat: np.ndarray, labels: List[str] = None, backend: str = "sklearn"
+) -> None:
     """
 
-    Args:
-        confusion_mat:
+    Parameters:
+        confusion_mat (np.ndarray): confusion matrix
+        labels (list[str]): class labels
+        backend (str): which plotting package to use
 
     Returns:
-
+        None
     """
     if backend == "sklearn":
         _ = ConfusionMatrixDisplay(confusion_mat, display_labels=labels)
@@ -238,52 +244,53 @@ def plot_confusion_matrix(confusion_mat: np.ndarray, labels: List[str] = None, b
         sns.heatmap(confusion_mat, annot=True)
         plt.show()
 
+
 def plot_object_detection_result(image, result, ax=None):
-        fig, ax = plt.subplots()
-        ax.imshow(image)
-        # indicate the bounding box
-        for score, label, box in zip(result["scores"], result["labels"], result["boxes"]):
-            ax.plot(
-                [box[0], box[2], box[2], box[0], box[0]],
-                [box[1], box[1], box[3], box[3], box[1]],
-                label=label,
-            )
-        ax.legend()
-        plt.show()
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+    # indicate the bounding box
+    for score, label, box in zip(result["scores"], result["labels"], result["boxes"]):
+        ax.plot(
+            [box[0], box[2], box[2], box[0], box[0]],
+            [box[1], box[1], box[3], box[3], box[1]],
+            label=label,
+        )
+    ax.legend()
+    plt.show()
 
 
-    # TODO: this is for bokeh backend of model performance by brain area
-    # color_by = "score_type"
-    # legend_categories = sorted(np.unique(_results_to_plot["score_type"]))
-    # source = ColumnDataSource(_results_to_plot)
-    # color_map = factor_cmap(
-    #     color_by, palette=["blue", "orange"], factors=legend_categories
-    # )
-    # plot = figure(
-    #     title="Model performance metrics",
-    #     x_axis_label="Brain Area",
-    #     y_axis_label="Metric Score",
-    #     width=1000,
-    #     height=1000,
-    # )
-    # plot.circle(
-    #     source=source,
-    #     x="brain_area",
-    #     y="score_value",
-    #     color=color_map,
-    #     legend_group="score_type",
-    # )
-    #
-    # output_file("plots/test.html")
-    # show(plot)
+# TODO: this is for bokeh backend of model performance by brain area
+# color_by = "score_type"
+# legend_categories = sorted(np.unique(_results_to_plot["score_type"]))
+# source = ColumnDataSource(_results_to_plot)
+# color_map = factor_cmap(
+#     color_by, palette=["blue", "orange"], factors=legend_categories
+# )
+# plot = figure(
+#     title="Model performance metrics",
+#     x_axis_label="Brain Area",
+#     y_axis_label="Metric Score",
+#     width=1000,
+#     height=1000,
+# )
+# plot.circle(
+#     source=source,
+#     x="brain_area",
+#     y="score_value",
+#     color=color_map,
+#     legend_group="score_type",
+# )
+#
+# output_file("plots/test.html")
+# show(plot)
 
-    # TODO: what is this?
-    # plot the metrics
-    # sns.scatterplot(
-    #     data=results.results,
-    #     x="bin_center",
-    #     y="r2_score_avg",
-    #     hue="embedding",
-    #     style="brain_area",
-    #     legend=False,
-    # )
+# TODO: what is this?
+# plot the metrics
+# sns.scatterplot(
+#     data=results.results,
+#     x="bin_center",
+#     y="r2_score_avg",
+#     hue="embedding",
+#     style="brain_area",
+#     legend=False,
+# )

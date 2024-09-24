@@ -1,4 +1,5 @@
 import torch
+
 from neural_data_analysis.analysis.ImageEmbedder import (
     VGG16Embedder,
     ResNet50Embedder,
@@ -18,14 +19,15 @@ from ..constants import embedder_configs
 
 # noinspection PyShadowingNames
 def embedder_from_spec(
-    embedder_name: str, embedder_configs=embedder_configs, device: str = None
+    embedder_name: str, embedder_configs=None, device: str = None
 ) -> (
-    ResNet50Embedder
+    VGG16Embedder
+    | ResNet50Embedder
     | CLIPEmbedder
     | DETREmbedder
+    | DINOEmbedder
     | BLIPEmbedder
     | BLIP2Embedder
-    | DINOEmbedder
     | ViTEmbedder
     | SGPTEmbedder
 ):
@@ -40,6 +42,9 @@ def embedder_from_spec(
     Returns:
         embedder (ImageEmbedder): model to embed images
     """
+    if embedder_configs is None:
+        embedder_configs = embedder_configs
+
     if device is None:
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -120,7 +125,7 @@ if __name__ == "__main__":
     args.device = "cuda"
 
     print("Embedder:", args.embedder)
-    embedder = embedder_from_spec(args.device, args.embedder)
+    embedder = embedder_from_spec(embedder_name=args.embedder, device=args.device)
     print(embedder)
     # images = torch.rand(32, 3, 224, 224)
     with open("config.yaml", "r") as file:

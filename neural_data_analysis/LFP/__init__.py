@@ -1,4 +1,5 @@
 from .analysis import apply_notch_filter
-from .analysis import butter
-from .analysis import create_filter
-from .analysis import filtfilt
+
+__version__ = "0.0.1"
+__description__ = "A package for working with EEG data."
+__all__ = [f for f in dir() if not f.startswith("_")]

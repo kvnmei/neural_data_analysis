@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 import torchmetrics
 from torch.utils.data import DataLoader, TensorDataset
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, Logger
 
 
 class MLPModelWrapper:
@@ -29,8 +29,11 @@ class MLPModelWrapper:
         """
         This model defines what type of MLP model to instantiate: classifier or regressor
 
-        Args:
-            hparams: hyperparameters
+        Parameters:
+            config (dict): dictionary with hyperparameters
+            input_dims (int): number of input features
+            output_dims (int): number of output classes or regression targets
+
         """
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,7 +67,7 @@ class MLPModelWrapper:
             shuffle=True,
             drop_last=True,
             num_workers=8,
-            persistent_workers=True
+            persistent_workers=True,
         )
         return dataloader
 
@@ -73,7 +76,7 @@ class MLPModelWrapper:
         #  I should give for check_val_every_n_epochs, relates to log_every_n_steps too
 
         # create a logger
-        csv_logger = CSVLogger(
+        csv_logger: Logger = CSVLogger(
             save_dir=run_info["save_dir"],
             name="lightning_logs",
         )
@@ -120,7 +123,7 @@ class MLPModelWrapper:
                 shuffle=False,
                 drop_last=True,
                 num_workers=8,
-                persistent_workers=True
+                persistent_workers=True,
             )
             trainer.fit(self.model, train_dataloader, val_dataloader)
         else:

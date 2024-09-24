@@ -14,9 +14,12 @@ dependencies:
   - seaborn
   - bokeh
   # machine learning
+  - conda-forge::lightning
+  - conda-forge::torchmetrics
   - conda-forge::shap
   # pip installs
   - pip
   - pip:
       - nltk
       - xgboost
+      - openai

@@ -39,6 +39,10 @@ from .constants import (
     gpt_configs,
 )
 
+from .LFP import (
+    apply_notch_filter,
+)
+
 from .plotting import (
     model_performance_by_brain_area,
     model_performance_by_time,

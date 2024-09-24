@@ -7,6 +7,7 @@ from scipy.signal import butter, filtfilt
 from mne.filter import create_filter
 
 
+# noinspection PyTupleAssignmentBalance
 def apply_notch_filter(signal, fs, notch_freq=60, quality_factor=30, backend="scipy"):
     """
     Apply a Notch filter to remove specific frequency from the signal.
@@ -34,5 +35,7 @@ def apply_notch_filter(signal, fs, notch_freq=60, quality_factor=30, backend="sc
             iir_params=dict(ftype="butter", order=2, output="sos"),
             verbose=False,
         )
+    else:
+        raise ValueError(f"Unknown backend: {backend}")
 
     return filtered_signal

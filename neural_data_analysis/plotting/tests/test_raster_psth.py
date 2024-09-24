@@ -128,7 +128,7 @@ class TestPlotGanttChart(unittest.TestCase):
     def test_plot_gantt_bar_chart(self):
         # Test the basic functionality
         plot_gantt_bar_chart(
-            df=self.data, plot_params=self.plot_params, backend="bokeh"
+            gantt_df=self.data, plot_params=self.plot_params, backend="bokeh"
         )
         # Check if file is created
         self.assertTrue(os.path.isfile(f"{self.plot_params['save_path']}.html"))

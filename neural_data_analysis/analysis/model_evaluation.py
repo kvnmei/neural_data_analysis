@@ -22,8 +22,8 @@ import warnings
 
 def calculate_model_performance(
     df: pd.DataFrame,
-    metrics: list[str] = ["r2", "corr"],
-    metrics_for_shuffled_data: list[str] = ["balanced_accuracy"],
+    metrics=None,
+    metrics_for_shuffled_data=None,
     model_eval_input_cols: dict = None,
     by_feature: bool = True,
     avg_across_variables: bool = True,
@@ -46,8 +46,8 @@ def calculate_model_performance(
         metrics (list[str]): list of metrics to compute between predictions and ground truth
         metrics_for_shuffled_data (list[str]): list of metrics to compute for the shuffled data
         model_eval_input_cols (dict): name of the column containing the ground truth and the predictions
-            keys are the what column names this function looks for
-            values are the corresponding column names in the input
+            - keys: what column names this function looks for
+            - values: corresponding column names in the input
         by_feature: if True, evaluate performance for each feature/variable (column) separately
             if False, evaluate performance for each sample (row) separately
         avg_across_variables (bool): if True, average the metric across the features or samples
@@ -58,6 +58,10 @@ def calculate_model_performance(
     Returns:
         averaged_df (pd.DataFrame): DataFrame containing the averaged data
     """
+    if metrics_for_shuffled_data is None:
+        metrics_for_shuffled_data = ["balanced_accuracy"]
+    if metrics is None:
+        metrics = ["r2", "corr"]
     logger = logging.getLogger(__name__)
     logger.info(f"Calculating model performance with the following parameters:")
     logger.info(f"Model performance metrics: [{metrics}]")

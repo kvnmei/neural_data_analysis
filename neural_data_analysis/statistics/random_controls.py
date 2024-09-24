@@ -1,6 +1,8 @@
 from typing import List, Tuple
 
 import numpy as np
+from numpy import ndarray
+
 from ..plotting import plot_heatmap_binary_matrix
 
 
@@ -11,6 +13,7 @@ def shift_binary_array(arr: np.ndarray, shift: int, plot: bool = False) -> np.nd
     Args:
         arr (np.ndarray): binary array of 0s and 1s
         shift (int): number of positions to shift the array
+        plot (bool): whether to plot the original and shifted arrays
 
     Returns:
         shifted_arr (np.ndarray): binary array shifted by the specified number of positions
@@ -33,13 +36,16 @@ def shift_binary_array(arr: np.ndarray, shift: int, plot: bool = False) -> np.nd
 
 def shuffle_binary_array_by_group(
     arr: np.ndarray, seed: int = None, plot: bool = False, return_seed: bool = False
-) -> np.ndarray:
+) -> tuple[ndarray, int | None] | ndarray:
     """
     Randomizes the order of groups of 1s in a binary array. The number and size of the groups of 1s are preserved.
+    However, the groups of 1s may be combined, so the shuffled array will always have <= the number of consecutive
+    groups of 1s.
 
     Args:
         arr (np.ndarray): binary array of 0s and 1s
         seed (int): seed for random number generator
+        plot (bool): whether to plot the original and shuffled arrays
         return_seed (bool): whether to return the seed used for randomization
 
     Returns:
@@ -56,10 +62,13 @@ def shuffle_binary_array_by_group(
         arr
     )
     len_of_groups_original = [len(group) for group in groups_original]
-    print(
-        f"total groups of consecutive 1s before shuffling: {len(groups_original)}, total 0s: {total_zeros_original}"
-    )
+    # print(
+    #     f"total groups of consecutive 1s before shuffling: {len(groups_original)}, total 0s: {total_zeros_original}"
+    # )
     # print(f"length of groups: {len_of_groups_original}")
+
+    if len(groups_original) == 0:
+        print("ERROR: No groups of 1s found in the array.")
 
     # shuffles the groups in place
     rng.shuffle(groups_original)
@@ -73,9 +82,17 @@ def shuffle_binary_array_by_group(
         shuffled_arr
     )
     len_of_groups_shuffled = [len(group) for group in groups_shuffled]
-    print(
-        f"total groups of consecutive 1s after shuffling: {len(groups_shuffled)}, total 0s: {total_zeros_shuffled}"
-    )
+    # print(
+    #     f"total groups of consecutive 1s after shuffling: {len(groups_shuffled)}, total 0s: {total_zeros_shuffled}"
+    # )
+    difference_in_groups = len(groups_shuffled) - len(groups_original)
+    # print(f"difference: {difference_in_groups}")
+    # if difference_in_groups != 0:
+    #     print(
+    #         f"Original groups: {len_of_groups_original}, Shuffled groups: {len_of_groups_shuffled}"
+    #     )
+    #     print(f"Difference in groups: {difference_in_groups}")
+
     # print(f"length of groups: {len_of_groups_shuffled}")
     if plot:
         matrix = np.vstack([arr, shuffled_arr])
@@ -130,28 +147,33 @@ def find_consecutive_sequences_in_binary_array(arr) -> tuple[list[list[int]], in
     return groups, total_zeros
 
 
-def distribute_zeros(groups, total_zeros: int, seed: int = None):
+def distribute_zeros(groups, total_zeros: int, seed: int = None) -> list[int]:
     """
     Distributes zeros randomly among groups of 1s.
 
     Parameters:
-        groups:
-        total_zeros:
-        seed:
+        groups (list[list[int]]): list of lists of 1s
+        total_zeros (int): total number of zeros in the array
+        seed (int): seed for random number generator
 
     Returns:
+        zero_distribution (list[int]): list of number of zeros between groups of 1s
 
     """
     if seed is None:
         np.random.seed(seed)
 
     rng = np.random.default_rng(seed=seed)
+
     # Number of places to insert zeros is one more than the number of groups
     zero_slots = len(groups) + 1
     # Randomly allocate zeros to these slots
     zero_distribution = [0] * zero_slots
+    # for every zero, add it to a random slot
     for _ in range(total_zeros):
-        zero_distribution[rng.integers(0, zero_slots - 1)] += 1
+        # add a zero to a random slot
+        slot = rng.integers(low=0, high=zero_slots - 1)
+        zero_distribution[slot] += 1
 
     return zero_distribution
 
@@ -162,15 +184,17 @@ def reconstruct_binary_array_from_groups(
     """
     Reconstructs a binary array from groups of 1s.
 
-    Args:
-        groups (list): list of lists of 1s
-        zero_distribution (list): list of number of zeros between groups of 1s
+    Parameters:
+        groups (list[list[int]]): list of lists of 1s
+        zero_distribution (list[int]): list of number of zeros between groups of 1s
 
     Returns:
         np.ndarray: binary array with groups of 1s and 0s
     """
     result = []
 
+    # zip will stop at the length of the shorter list (groups) if the lists are different lengths
+    # zero_distribution will always be 1 longer than groups
     for zeros, group in zip(zero_distribution, groups):
         result.extend([0] * zeros)
         result.extend(group)

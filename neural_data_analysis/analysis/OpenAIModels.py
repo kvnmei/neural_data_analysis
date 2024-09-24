@@ -3,6 +3,7 @@
 
 CREDITS: Code from Markus Marks
 """
+
 import time
 import re
 import numpy as np
@@ -12,8 +13,8 @@ from tqdm import tqdm
 
 
 class GPTInterface:
-    def __init__(self, cfg: dict, classnames: list = None, n_prompts: int = None):
-        self.cfg = cfg
+    def __init__(self, config: dict, classnames: list = None, n_prompts: int = None):
+        self.config = config
         self.classnames = classnames
 
         openai.api_key = cfg["gpt"]["openai_api_key"]
@@ -159,6 +160,7 @@ class GPTInterface:
         return completion.choices[0].message.content
 
 
+# noinspection GrazieInspection
 if __name__ == "__main__":
     """Testing"""
     cfg = yaml.load(open("tests/config.yaml", "r"), Loader=yaml.FullLoader)
@@ -173,11 +175,11 @@ if __name__ == "__main__":
     out = gpt.generate_prompts(
         example_input,
         n_prompts=10,
-        default_prompt="Describe {n_prompts} typical situtations where a {object_name} would appear in. The descriptions are for watercolor paintings. Describe the scenes in detail and very the positions/sizes/etc. of {object_name} and various styles of the painting. Usually the paintings are on a white canvas though with white background. Start the answer with '{object_name} in/at/on.'",
+        default_prompt="Describe {n_prompts} typical situations where an {object_name} would appear in. The descriptions are for watercolor paintings. Describe the scenes in detail and very the positions/sizes/etc. of {object_name} and various styles of the painting. Usually the paintings are on a white canvas though with white background. Start the answer with '{object_name} in/at/on.'",
     )
     print(out)
 
-    # ### test custom requests
+    #### ---- test custom requests -----
     # requests = [
     #     "List 3 typical places where a bus would appear. Avoid being overly specific but give generic answers. Start the answer with 'bus in/at/on'.",
     #     "List 3 typical places where a car would appear. Avoid being overly specific but give generic answers. Start the answer with 'car in/at/on'.",

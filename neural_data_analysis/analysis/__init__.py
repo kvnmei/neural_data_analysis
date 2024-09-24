@@ -25,7 +25,7 @@ from .neural_population import (
 
 from .single_neuron import calc_firing_rates
 
-from .MLPModel import (
+from .MLPModelWrapper import (
     MLPModelWrapper,
 )
 

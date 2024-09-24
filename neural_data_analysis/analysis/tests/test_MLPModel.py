@@ -4,7 +4,7 @@ import torch
 import yaml
 from sklearn.metrics import r2_score
 
-from neural_data_analysis.analysis import MLPModel
+from neural_data_analysis.analysis import MLPModelWrapper
 
 
 class TestRandomData(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestRandomData(unittest.TestCase):
         y_train = torch.rand(10000, 100)
         X_val = torch.rand(1000, 100)
         y_val = torch.rand(1000, 100)
-        model = MLPModel(self.config, X_train.shape[-1], y_train.shape[-1])
+        model = MLPModelWrapper(self.config, X_train.shape[-1], y_train.shape[-1])
         model.fit(X_train, y_train, X_val, y_val)
         y_test = torch.rand(100, 100)
         predictions = model.predict(y_test)

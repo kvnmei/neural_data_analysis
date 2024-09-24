@@ -1,6 +1,7 @@
 """
 
 """
+
 import numpy as np
 import yaml
 from sklearn.cross_decomposition import PLSRegression
@@ -19,6 +20,7 @@ from sklearn.pipeline import Pipeline
 #            ):
 
 
+# noinspection PyPep8Naming,PyShadowingNames
 class LinearModelWrapper:
     """Wrapper for linear models."""
 
@@ -65,13 +67,14 @@ class LinearModelWrapper:
             self.model = pipeline
         print("Logistic Regression uses balanced class weights.")
 
+    # noinspection PyShadowingNames
     def fit(self, X, y):
         """
         Fit the linear regression model to the training data.
 
         Args:
-            X (numpy.ndarray):
-            y (numpy.ndarray):
+            X (numpy.ndarray): Independent variables (features) with shape (n_samples, n_features).
+            y (numpy.ndarray): Dependent variable with shape (n_samples,).
 
         Returns:
             self (LinearModel): Returns an instance of the LinearModel class.
@@ -95,7 +98,8 @@ class LinearModelWrapper:
         predictions = self.model.predict(X)
         return predictions
 
-    def ridge_regression(self, X, y, alpha):
+    @staticmethod
+    def ridge_regression(X, y, alpha):
         """
         Solve Ridge regression.
 
@@ -110,7 +114,8 @@ class LinearModelWrapper:
         betas = np.linalg.inv(X.T @ X + alpha * np.identity(X.shape[1])) @ X.T @ y
         return betas
 
-    def ols_regression(self, X, y):
+    @staticmethod
+    def ols_regression(X, y):
         """
         Solve Ordinary Least Squares regression.
 

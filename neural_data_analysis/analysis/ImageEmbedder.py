@@ -11,14 +11,11 @@ Classes:
 Examples:
 
 """
-
-from typing import Dict, List, Protocol
 from abc import ABC, abstractmethod
 import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
-import yaml
 from torchvision import transforms
 from torchvision.models import (
     resnet50,
@@ -39,21 +36,19 @@ from transformers import (
     BlipForConditionalGeneration,
     CLIPModel,
 )
-from PIL import Image
-import requests
 
 
-class ImageEmbedder(ABC):
+class ImageEmbedder(ABC, nn.Module):
     """
     Embeds input images by an encoding model.
 
     Attributes:
-        config (dict): configuration dictionary
-        device (torch.device): device to use for embedding
+        config (dict): Configuration dictionary.
+        device (torch.device): Device to use for embedding.
 
     Methods:
-        preprocess(self, encoder)
-        embed(self, encoder)
+        preprocess(self, images: torch.Tensor) -> torch.Tensor
+        embed(self, images: torch.Tensor) -> np.ndarray
 
     """
 
@@ -62,18 +57,37 @@ class ImageEmbedder(ABC):
         config: dict,
         device: torch.device,
     ):
+        nn.Module.__init__(self)
         self.config = config
         self.device = device
         self.batch_size = config.get("batch_size", 64)
         self.encoder = None
+        self.embedding_name = config.get("embedding_name", "ImageEmbedder")
 
     @abstractmethod
-    def preprocess(self, images: torch.Tensor) -> dict:
+    def preprocess(self, images: torch.Tensor) -> torch.Tensor:
         pass
 
-    @abstractmethod
-    def embed(self, images: torch.Tensor):
-        pass
+    @torch.no_grad()
+    def embed(self, images: torch.Tensor) -> np.ndarray:
+        """
+        Embeds the input images using the encoder.
+
+        Args:
+            images (torch.Tensor): Tensor of shape (n_samples, n_channels, height, width).
+
+        Returns:
+            np.ndarray: Embedded features.
+        """
+        results = []
+        print(f"Embedding with {self.embedding_name}...")
+        for i in tqdm(range(0, images.shape[0], self.batch_size)):
+            batch = images[i : i + self.batch_size]
+            batch = self.preprocess(batch).to(self.device)
+            batch = self.encoder(batch)
+            results.append(batch)
+        results = torch.cat(results, dim=0).cpu().numpy()
+        return results
 
 
 class VGG16Embedder(ImageEmbedder, nn.Module):
@@ -93,23 +107,6 @@ class VGG16Embedder(ImageEmbedder, nn.Module):
         images = self.processor(images)
         return images
 
-    @torch.no_grad()
-    def embed(self, images: torch.Tensor) -> np.ndarray:
-        """
-
-        Args:
-            images (torch.Tensor): (n_samples, n_channels, height, width)
-        """
-        results = []
-        print("Embedding with VGG16...")
-        for i in tqdm(range(0, images.shape[0], self.batch_size)):
-            batch = images[i : i + self.batch_size]
-            batch = self.preprocess(batch).to(self.device)
-            batch = self.encoder(batch)
-            results.append(batch)
-        results = torch.cat(results, dim=0).cpu().numpy()
-        return results
-
 
 class ResNet50Embedder(ImageEmbedder, nn.Module):
     def __init__(self, config: dict, device: torch.device) -> None:
@@ -125,23 +122,6 @@ class ResNet50Embedder(ImageEmbedder, nn.Module):
         images = _check_image_tensor_dimensions(images)
         images = self.processor(images)
         return images
-
-    @torch.no_grad()
-    def embed(self, images: torch.Tensor) -> np.ndarray:
-        """
-
-        Args:
-            images (torch.Tensor): (n_samples, n_channels, height, width)
-        """
-        results = []
-        print("Embedding with ResNet...")
-        for i in tqdm(range(0, images.shape[0], self.batch_size)):
-            batch = images[i : i + self.batch_size]
-            batch = self.preprocess(batch).to(self.device)
-            batch = self.encoder(batch)
-            results.append(batch)
-        results = torch.cat(results, dim=0).cpu().numpy()
-        return results
 
 
 class CLIPEmbedder(ImageEmbedder, nn.Module):
@@ -191,7 +171,7 @@ class DETREmbedder(ImageEmbedder):
         self.encoder.to(device)
         self.processor = AutoImageProcessor.from_pretrained(config["processor"])
 
-    def preprocess(self, images):
+    def preprocess(self, images: list) -> dict:
         images = self.processor(images, return_tensors="pt").to(self.device)
         return images
 
@@ -420,11 +400,11 @@ class BLIP2Embedder(ImageEmbedder):
         # flatten the list
         result_ids = [item.cpu().numpy() for sublist in result_ids for item in sublist]
         result_text = [item for sublist in result_text for item in sublist]
-        results = {
-            "ids": result_ids,
-            "text": result_text,
-            "image_ids": image_ids,
-        }
+        # results = {
+        #     "ids": result_ids,
+        #     "text": result_text,
+        #     "image_ids": image_ids,
+        # }
         return result_text
 
 
@@ -437,7 +417,7 @@ class DINOEmbedder(ImageEmbedder, nn.Module):
         # self.encoder.eval()
         self.processor = AutoImageProcessor.from_pretrained(config["processor"])
 
-    def preprocess(self, images: torch.Tensor):
+    def preprocess(self, images: torch.Tensor) -> dict:
         images = _check_image_tensor_dimensions(images)
         images = [torchvision.transforms.ToPILImage()(img) for img in images]
         images = self.processor(images, return_tensors="pt").to(self.device)

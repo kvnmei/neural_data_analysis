@@ -33,7 +33,7 @@ class NeuralPopulation:
         details += "Methods:\n" + "\n".join(f"  {method}" for method in methods)
         return details
 
-    def count_cells_by_region(self, brain_areas: list = []) -> tuple[list, list]:
+    def count_cells_by_region(self, brain_areas=None) -> tuple[list, list]:
         """
         Returns the brain areas and the number of cells in each area.
 
@@ -44,6 +44,9 @@ class NeuralPopulation:
             brain_area (list): List of brain areas.
             brain_area_cell_counts (list): List of number of cells in each brain area.
         """
+        if brain_areas is None:
+            brain_areas = []
+
         if not brain_areas:
             brain_areas = np.unique(
                 [neuron.brain_area_abbreviation for neuron in self.neurons]

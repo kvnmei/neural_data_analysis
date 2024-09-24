@@ -4,7 +4,7 @@ import numpy as np
 # Function to perform permutation test
 def permutation_test(
     group1: np.ndarray, group2: np.ndarray, n_permutations: int = 10000
-) -> tuple(float, float):
+) -> tuple[float, float]:
     """
     Permutation test for the difference in means between two groups.
 

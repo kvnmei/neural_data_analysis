@@ -44,6 +44,7 @@ def get_brain_area_abbreviation(name: str, lower=True) -> str:
 
     Args:
         name (str): brain area name
+        lower (bool): whether to return the abbreviation in lowercase
 
     Returns:
         abbreviated_name (str): 3-letter abbreviation of brain area name

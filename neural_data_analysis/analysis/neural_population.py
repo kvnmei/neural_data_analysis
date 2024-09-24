@@ -25,6 +25,7 @@ def subset_cells(
         cells (np.array([Neuron])): a list of Neuron objects
         attribute (str): the attribute of the Neuron object to subset by
         value (str): the value of the attribute to subset by
+        logger (logging.Logger): a logger object to log messages
 
     Returns:
         cells_subset (np.array): a list of Neuron objects with the specified attribute value(s)

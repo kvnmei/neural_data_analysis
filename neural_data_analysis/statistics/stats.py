@@ -5,16 +5,17 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-def t_test(data: np.ndarray, labels, alpha=0.05):
+def t_test(data: np.ndarray, labels, alpha=0.05) -> tuple[float, float]:
     """Perform a t-test on the data.
 
-    Args:
-        data:
-        group_labels:
-        alpha:
+    Parameters:
+        data (np.array):
+        labels (np.array):
+        alpha (float):
 
     Returns:
-
+        t_stat (float): The t-statistic.
+        p_value (float): The p-value.
     """
     assert len(data) == len(labels), "Data and labels must be the same length."
     assert len(np.unique(labels)) == 2, "Number of unique group labels must be 2."

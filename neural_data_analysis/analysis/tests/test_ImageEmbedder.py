@@ -6,6 +6,7 @@ import torch
 import yaml
 from PIL import Image
 
+from neural_data_analysis import embedder_configs
 from neural_data_analysis.analysis import create_image_embeddings, embedder_from_spec
 
 
@@ -26,7 +27,7 @@ class TestRandomData(unittest.TestCase):
 
     def test_DETREmbedder(self):
         embedder_name = "DETREmbedder"
-        image_embedder = embedder_from_spec(, embedder_name
+        image_embedder = embedder_from_spec(embedder_name, embedder_configs)
         embedding = image_embedder.embed(self.data)
 
 
@@ -53,11 +54,12 @@ class TestRealImage(unittest.TestCase):
 
     def test_DETREmbedder(self):
         embedder_name = "DETREmbedder"
-        image_embedder = embedder_from_spec(, embedder_name
+        image_embedder = embedder_from_spec(embedder_name, embedder_configs)
         object_bounding_boxes = image_embedder.embed(self.data)
 
     def test_plot_object_detection_result(self, result, ax=None):
         pass
+
 
 if __name__ == "__main__":
     unittest.main()

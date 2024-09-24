@@ -254,6 +254,7 @@ class Experiment:
         X_train: np.ndarray = np.empty(0),
         X_val: np.ndarray = np.empty(0),
     ) -> np.ndarray:
+        # noinspection GrazieInspection
         """
         Computes the SHAP values for the validation set.
 
@@ -907,6 +908,7 @@ class Experiment:
         else:
             return fold_generator.split(indices_to_split)
 
+    # noinspection PyTypeChecker
     def _save_results(self, results, name="results", save_type="hdf5") -> None:
         if name == "":
             results_filename = f"{self.experiment_name}"
@@ -918,7 +920,8 @@ class Experiment:
             results.to_hdf(self.save_dir / results_filename, key="results", mode="w")
         elif save_type == "pickle":
             results_filename += ".pkl"
-            pickle.dump(results, open(self.save_dir / results_filename, "wb"))
+            with open(self.save_dir / results_filename, "wb") as f:
+                pickle.dump(results, f)
         elif save_type == "csv":
             results_filename += ".csv"
             results.to_csv(self.save_dir / results_filename)

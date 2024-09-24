@@ -318,25 +318,30 @@ def elbow_curve(data, max_k=10, plot=True, seed=42):
 def plot_tsne_projections(
     projections: np.ndarray,
     backend: str = "matplotlib",
-    title: str = "t-SNE Plot",
-    suptitle: str = None,
-    labels: list = None,
-    categories: list = None,
-    legend_title: str = "Legend",
+    **kwargs,
 ) -> None:
     """t-SNE 2-D Projections Plot
 
-    Args:
+    Parameters:
         projections (np.ndarray): t-SNE projection matrix
+        backend (str): which plotting package to use
+
+    Optional kwargs:
+        title (str): title of the plot
+        suptitle (str): suptitle of the plot
         labels (list[str]): labels for each data point
         categories (list[str]): categories for each data point
-        title (str):
-        suptitle (str):
-        backend (str): which plotting package to use
+        legend_title (str): title for the legend
 
     Returns:
         None
     """
+
+    title = kwargs.get("title", "t-SNE Plot")
+    suptitle = kwargs.get("suptitle", None)
+    labels = kwargs.get("labels", [])
+    categories = kwargs.get("categories", None)
+    legend_title = kwargs.get("legend_title", "Legend")
 
     # check if input is 2-D array.
     if projections.shape[1] != 2:
@@ -354,10 +359,11 @@ def plot_tsne_projections(
             alpha=0.6,  # transparency
         )
         # plotting data point labels
-        for i, (x, y) in enumerate(projections):
-            plt.text(
-                x + 0.3, y + 0.3, labels[i], fontsize=9, ha="right", va="bottom"
-            )  # Adjust text position and size as needed
+        if labels:
+            for i, (x, y) in enumerate(projections):
+                plt.text(
+                    x + 0.3, y + 0.3, labels[i], fontsize=9, ha="right", va="bottom"
+                )  # Adjust text position and size as needed
         ax.set_title(title if title else "")
         fig.suptitle(suptitle if suptitle else "")
         ax.set_xlabel("t-SNE Dimension 1")
@@ -398,6 +404,11 @@ def plot_tsne_projections(
         plt.subplots_adjust(right=0.7)
         # plt.tight_layout(rect=[0, 0, 0.75, 1])
 
+    else:
+        raise ValueError(
+            f"Invalid backend: {backend}. Choose from 'seaborn' or 'matplotlib'."
+        )
+
     return fig
 
 
@@ -434,6 +445,7 @@ def create_polar_plot_tuning_curve(
         df (DataFrame): The DataFrame containing neuron data.
         neuron_id (int or str): The ID of the neuron to plot.
         custom_order (list): A custom order for the labels (optional).
+        metric_to_plot (str): The metric to plot on the rose plot.
 
     Returns:
         None
@@ -630,15 +642,21 @@ def plot_heatmap_binary_matrix(
         ytick_labels = np.arange(matrix.shape[0])
         num_ylabels = matrix.shape[0]
 
-    max_width = 12  # Maximum allowable width in inches
-    max_length = 10  # Maximum allowable length in inches
+    max_width = 12.0  # Maximum allowable width in inches
+    max_length = 10.0  # Maximum allowable length in inches
 
     # Dynamically calculate the figure size with a ceiling
+    xlabels_width = (
+        num_xlabels * 0.5 + 2.0
+    )  # 0.5 inch per label, 2.0 inch for title and y-axis
     fig_width = min(
-        12, num_xlabels * 0.5 + 2.0
+        max_width, xlabels_width
     )  # Width based on the number of columns, with a max of 12 inches
+    ylabels_length = (
+        num_ylabels * 0.5 + 2.0
+    )  # 0.5 inch per label, 2.0 inch for title and x-axis
     fig_length = min(
-        num_ylabels * 0.5 + 2.0, max_length
+        ylabels_length, max_length
     )  # Height based on the number of rows, with a max of 10 inches
 
     if backend.lower() == "seaborn":
@@ -713,6 +731,7 @@ def plot_heatmap_matrix(
 
     Parameters:
         matrix (np.ndarray): The matrix to be plotted.
+        backend (str): Plotting package to use. Options: "seaborn" or "matplotlib".
 
     Optional kwargs:
         title (str, optional): Title of the plot.
@@ -744,7 +763,7 @@ def plot_heatmap_matrix(
         num_xlabels = matrix.shape[1]
 
     # Determine the figure width based on the number of x labels
-    fig_width = max(12, num_xlabels * 0.75)  # Minimum width of 12, and 0.75 per label
+    fig_width = max(12.0, num_xlabels * 0.75)  # Minimum width of 12, and 0.75 per label
     fig_length = (
         matrix.shape[0] * 1.0 + 2.0
     )  # 1.0 per row, 2.0 for title and x/y labels

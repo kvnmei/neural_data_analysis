@@ -12,7 +12,7 @@ def get_nwb_files(path: Path) -> list[Path]:
         path (Path): path to DANDI dataset directory containing subject directories
 
     Returns:
-        nwb_sessin_files (list[Path]): list of NWB file names
+        nwb_session_files (list[Path]): list of NWB file names
     """
     if not isinstance(path, Path):
         path = Path(path)
