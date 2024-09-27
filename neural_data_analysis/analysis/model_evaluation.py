@@ -161,16 +161,16 @@ def calculate_model_performance(
                 df[f"{metric}_mean"] = df[metric].apply(np.mean)
         metrics = [f"{metric}_mean" for metric in metrics]
 
-    # average across the folds
-    logger.info("Averaging performance across validation folds...")
-    averaged_df = average_across_iterations(
-        df,
-        iter_var="fold",
-        target_var=metrics,
-        columns_to_keep=columns_to_keep,
-    )
+    # ------------- average across the folds -------------
+    # logger.info("Averaging performance across validation folds...")
+    # averaged_df = average_across_iterations(
+    #     df,
+    #     iter_var="fold",
+    #     target_var=metrics,
+    #     columns_to_keep=columns_to_keep,
+    # )
 
-    return averaged_df
+    return df
 
 
 def append_model_scores(
@@ -252,7 +252,7 @@ def evaluate_model_performance(
     Returns:
         scores (dict): list of scores for each feature or sample
     """
-    # If the ground truth and predictions are 1d, reshape them to 2d
+    # If the ground truth and predictions are 1d, reshape them to 2d (n_samples, n_features)
     ground_truth = reshape_into_2d(ground_truth)
     predictions = reshape_into_2d(predictions)
 
@@ -357,7 +357,46 @@ def evaluate_metric(
     Returns:
         score (float): the score of the model performance
     """
-    if (metric == "correlation") or (metric == "corr"):
+    if (metric == "true_positives") or (metric == "tp"):
+        # Calculate the number of true positives
+        true_positives = np.sum((ground_truth == 1) & (predictions == 1))
+        score = true_positives
+    elif (metric == "all_gt_positives") or (metric == "all_positives"):
+        # Calculate the number of all positives in the ground truth, assuming binary
+        all_positives = np.sum(ground_truth == 1)
+        score = all_positives
+    elif metric == "recall_raw":
+        # Boolean array where ground truth is positive
+        is_positive = y_true == 1
+
+        # Indices of positive cases
+        positive_indices = np.where(is_positive)[0]
+
+        # Predictions corresponding to positive ground truth cases
+        predictions_for_positives = y_pred[positive_indices]
+
+        # Boolean array indicating correct predictions
+        correct_predictions = predictions_for_positives == 1
+
+        # Number of correct predictions (True Positives)
+        num_true_positives = np.sum(correct_predictions)
+
+        # Total number of positives in ground truth
+        num_positives_in_ground_truth = np.sum(is_positive)
+
+        # Recall calculation
+        recall = num_true_positives / num_positives_in_ground_truth
+
+        score = recall
+    elif (metric == "precision") or (metric == "prec"):
+        score = precision_score(
+            y_true=ground_truth, y_pred=predictions, labels=classes, average="weighted"
+        )
+    elif (metric == "recall") or (metric == "rec") or (metric == "sensitivity"):
+        score = recall_score(
+            y_true=ground_truth, y_pred=predictions, labels=classes, average="weighted"
+        )
+    elif (metric == "correlation") or (metric == "corr"):
         score = pearsonr(ground_truth, predictions)[0]
     elif (metric == "r-squared") or (metric == "r2"):
         score = r2_score(ground_truth, predictions)
@@ -508,6 +547,61 @@ def average_across_iterations(
 
     averaged_result_df = pd.DataFrame(averaged_result_list_dict)
     return averaged_result_df
+
+
+def sum_across_iterations(
+    df: pd.DataFrame,
+    iter_var: str,
+    target_var: list[str],
+    columns_to_keep: list[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
+) -> pd.DataFrame:
+    #  dataframe conversion, for now just fixed by making it a string
+    if isinstance(target_var, str):
+        target_var = tuple(target_var)
+
+    summed_result_list_dict = []
+    n_iter = len(np.unique(df[iter_var]))
+
+    # logging.warning(
+    #     "Summing will not work if the iter_var is not repeated in consecutive order in the dataframe"
+    # )
+
+    for i in np.arange(0, len(df), n_iter):
+        _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
+        summed_result_dict = {}
+        for col in columns_to_keep:
+            summed_result_dict[f"{col}"] = _temp[f"{col}"][0]
+
+        for var in target_var:
+            # Convert Series to DataFrame
+            df = pd.DataFrame(_temp[var].tolist())
+
+            # Sum each column
+            column_sums = df.sum()
+
+            # Convert sums to list if needed
+            sums_list = column_sums.tolist()
+
+            summed_result_dict.update(
+                {
+                    f"{var}_sum": sums_list,
+                }
+            )
+            # variable_sum = np.sum(_temp[var].to_numpy(), axis=1)
+            # summed_result_dict.update(
+            #     {
+            #         f"{var}_sum": variable_sum,
+            #     }
+            # )
+        summed_result_list_dict.append(summed_result_dict)
+
+    summed_result_df = pd.DataFrame(summed_result_list_dict)
+    return summed_result_df
 
 
 def reshape_into_2d(arr: np.ndarray) -> np.ndarray:

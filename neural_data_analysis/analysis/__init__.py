@@ -15,6 +15,7 @@ from .model_evaluation import (
     evaluate_model_performance,
     calculate_model_performance,
     average_across_iterations,
+    sum_across_iterations,
 )
 from .NeuralPopulation import NeuralPopulation
 from .Neuron import Neuron

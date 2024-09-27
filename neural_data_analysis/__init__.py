@@ -1,5 +1,6 @@
 from .analysis import (
     average_across_iterations,
+    sum_across_iterations,
     embedder_from_spec,
     append_model_scores,
     calc_firing_rates,
@@ -51,6 +52,7 @@ from .plotting import (
     plot_ecdf,
     plot_model_predictions,
     plot_object_detection_result,
+    plot_scatter,
     plot_scatter_with_images,
     plot_tsne_projections,
     plot_variance_explained,

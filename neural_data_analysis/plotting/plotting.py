@@ -35,7 +35,10 @@ from matplotlib.patches import Patch
 from matplotlib.colors import ListedColormap
 
 
-def plot_histogram(data):
+# =======================================
+# Function: plot_histogram
+# ========================================
+def plot_histogram(data: pd.DataFrame) -> None:
     """
     Given a list of values, plot a histogram of the count/percentage of the values.
 
@@ -45,6 +48,63 @@ def plot_histogram(data):
     fig, ax = plt.subplots()
     sns.histplot(data, kde=False, ax=ax, stat="count")
     plt.show()
+
+
+# =======================================
+# Function: plot_scatter
+# ========================================
+def plot_scatter(
+    data, x_column: str, y_column: str, backend="seaborn", **kwargs
+) -> None:
+    """
+    Plots a scatter plot of the data.
+
+    Parameters:
+        data (pd.DataFrame):
+        x_column (str): Column name for the x-axis.
+        y_column (str): Column name for the y-axis.
+
+        backend (str): Plotting package to use. Options: "seaborn" or "matplotlib".
+
+    Optional kwargs:
+        title (str, optional): Title of the plot.
+        xlabel (str, optional): Label for the x-axis.
+        ylabel (str, optional): Label for the y-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        ytick_labels (list, optional): Custom labels for the y-axis ticks.
+        save_dir (str or Path, optional): Directory to save the plot.
+        save_filename (str, optional): File name to save the plot.
+
+    Returns:
+        None
+    """
+    sns.set_theme(style="white")
+
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", "scatter_plot.png")
+
+    if backend == "seaborn":
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        sns.scatterplot(data=data, ax=ax, x=x_column, y=y_column, palette="viridis")
+
+        # Set title and axis labels from kwargs
+        ax.set_title(kwargs.get("title", "Scatter Plot"))
+        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
+        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+
+        plt.tight_layout()
+
+        if save_filename:
+            # Create the plots directory if it doesn't exist
+            fig.savefig(save_dir / save_filename)
+
+        plt.show()
 
 
 def plot_scatter_with_images(
@@ -183,10 +243,83 @@ def plot_scatter_with_images(
         show(plot)
 
 
+# =======================================
+# Function: plot_strip_and_swarm
+# ========================================
+
+
+def plot_strip_and_swarm(
+    data: pd.DataFrame,
+    backend: str = "seaborn",
+    **kwargs,
+) -> None:
+    """
+    Plots a strip and swarm plot of the data.
+
+    Parameters:
+        data:
+        backend:
+        **kwargs:
+
+    Optional kwargs:
+        title (str, optional): Title of the plot.
+        xlabel (str, optional): Label for the x-axis.
+        ylabel (str, optional): Label for the y-axis.
+        xtick_labels (list, optional): Custom labels for the x-axis ticks.
+        plot_all_xtick_labels (bool, optional): Whether to plot all the xtick labels.
+        ytick_labels (list, optional): Custom labels for the y-axis ticks.
+        save_dir (str or Path, optional): Directory to save the plot.
+        save_filename (str, optional): File name to save the plot.
+
+    Returns:
+
+    """
+    # TODO: Incomplete function
+    # Set the default save directory if not provided
+    save_dir = kwargs.get("save_dir", Path("plots"))
+    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set the default save file name if not provided
+    save_filename = kwargs.get("save_filename", "binary_matrix_heatmap.png")
+
+    # Get xtick labels from kwargs if provided
+    xtick_labels = kwargs.get("xtick_labels")
+    ytick_labels = kwargs.get("ytick_labels")
+
+    if backend.lower() == "seaborn":
+        fig, ax = plt.subplots(figsize=(fig_width, fig_length))
+        sns.heatmap(
+            matrix,
+            ax=ax,
+            cmap="viridis",
+            annot=True,
+            xticklabels=xtick_labels,
+            yticklabels=kwargs.get("ytick_labels"),
+        )
+
+        # Set title and axis labels from kwargs
+        ax.set_title(kwargs.get("title", "Stripplot with Swarmplot"))
+        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
+        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+
+        plt.tight_layout()
+
+        if save_filename:
+            # Create the plots directory if it doesn't exist
+            fig.savefig(save_dir / save_filename)
+
+        plt.show()
+
+
+# =======================================
+# Function: plot_variance_explained
+# ========================================
 def plot_variance_explained(data_points, plot_name=None, save_plot=False):
     """
-    Plots the variance explain per principal component
+    Plots the variance explained per principal component
     and a cumulative variance explained per principal component
+    on a line plot.
 
     Args:
         data_points (array): high-dimensional points (n_samples, n_features)
@@ -531,6 +664,7 @@ def create_polar_plot_tuning_curve(
 def plot_heatmap_pairwise_distance(
     pw_dist_mat: np.ndarray,
     backend: str = "seaborn",
+    show_plot: bool = True,
     **kwargs,
 ) -> None:
     """Heatmap for Pairwise Distances Matrix
@@ -539,6 +673,7 @@ def plot_heatmap_pairwise_distance(
         pw_dist_mat (np.ndarray): Pairwise distance (square, symmetric) matrix.
         backend (str): Plotting package to use.
             Options: "seaborn" or "matplotlib"
+        show_plot (bool): Whether to show the plot.
 
     Optional kwargs:
         title (str): Title of the plot.
@@ -556,35 +691,40 @@ def plot_heatmap_pairwise_distance(
         raise ValueError(f"Expected a square matrix. Got {pw_dist_mat.shape}.")
 
     # Set the default save directory if not provided
-    save_dir = kwargs.get("save_dir", Path("plots/pairwise_distance_matrices"))
+    save_dir = kwargs.get("save_dir", Path("plots"))
     save_dir = Path(save_dir)  # Ensure save_dir is a Path object
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Set the default save file name if not provided
     save_filename = kwargs.get("save_filename", "pairwise_distance_heatmap.png")
 
+    # Get xtick and ytick labels from kwargs if provided
+    xtick_labels = kwargs.get("xtick_labels")
+    ytick_labels = kwargs.get("ytick_labels", xtick_labels)
+
     if backend.lower() == "seaborn":
         pair_dist_df = pd.DataFrame(pw_dist_mat)
         fig, ax = plt.subplots(figsize=(12, 10))
-        sns.heatmap(pair_dist_df, cmap="YlGnBu", ax=ax)
-        plt.title(kwargs.get("title", "Pairwise Distance Heatmap"))
-        plt.xlabel(kwargs.get("xlabel", "Data Point"))
-        plt.ylabel(kwargs.get("ylabel", "Data Point"))
-        xtick_labels = kwargs.get("xtick_labels")
-        ytick_labels = kwargs.get("ytick_labels", xtick_labels)
-        # Set custom x-tick labels if provided
-        if xtick_labels:
-            ax.set_xticklabels(xtick_labels, rotation=90)
-        if ytick_labels:
-            ax.set_yticklabels(ytick_labels, rotation=0)
+        sns.heatmap(
+            pair_dist_df,
+            cmap="YlGnBu",
+            ax=ax,
+            xticklabels=xtick_labels,
+            yticklabels=ytick_labels,
+        )
+        ax.set_title(kwargs.get("title", "Pairwise Distance Heatmap"))
+        ax.set_xlabel(kwargs.get("xlabel", "Data Point"))
+        ax.set_ylabel(kwargs.get("ylabel", "Data Point"))
 
-        # Save the plot to the specified directory with the specified file name
-        plot_path = save_dir / save_filename
-        fig.savefig(plot_path)
+        plt.tight_layout()
+
+        if save_filename:
+            # Create the plots directory if it doesn't exist
+            fig.savefig(save_dir / save_filename)
 
         # Show the plot
-        plt.tight_layout()
-        plt.show()
+        if show_plot:
+            plt.show()
 
     else:
         raise ValueError(
@@ -625,7 +765,7 @@ def plot_heatmap_binary_matrix(
     # Set the default save file name if not provided
     save_filename = kwargs.get("save_filename", "binary_matrix_heatmap.png")
 
-    # Get xtick labels from kwargs if provided
+    # Get xtick and ytick labels from kwargs if provided
     xtick_labels = kwargs.get("xtick_labels")
     ytick_labels = kwargs.get("ytick_labels")
 
@@ -663,21 +803,19 @@ def plot_heatmap_binary_matrix(
         colors = ["lightblue", "darkblue"]
         cmap = ListedColormap(colors)
         fig, ax = plt.subplots(figsize=(fig_width, fig_length))
+
         heatmap = sns.heatmap(
             matrix,
             ax=ax,
             # xticklabels=xtick_labels,
-            # yticklabels=ytick_labels,
+            yticklabels=ytick_labels,
             cmap=cmap,
             cbar=False,
         )
-
         if kwargs.get("plot_all_xtick_labels", False):
             ax.set_xticklabels(xtick_labels)
         # else:
         #     ax.xaxis.set_major_locator(plt.MaxNLocator())
-
-        ax.set_yticklabels(ytick_labels)
 
         # Set title and axis labels from kwargs
         ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
