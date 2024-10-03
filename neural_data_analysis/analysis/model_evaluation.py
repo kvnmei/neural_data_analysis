@@ -261,71 +261,72 @@ def evaluate_model_performance(
     for metric_name in metric:
         # for multilabel binary classification
 
-        if metric_name in ["precision", "recall", "fscore", "support"]:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=UserWarning)
-                (
-                    scores["precision"],
-                    scores["recall"],
-                    scores["fscore"],
-                    scores["support"],
-                ) = precision_recall_fscore_support(
-                    ground_truth, predictions, labels=classes
-                )
-            break
+        # if metric_name in ["precision", "recall", "fscore", "support"]:
+        #     with warnings.catch_warnings():
+        #         warnings.simplefilter("ignore", category=UserWarning)
+        #         (
+        #             scores["precision"],
+        #             scores["recall"],
+        #             scores["fscore"],
+        #             scores["support"],
+        #         ) = precision_recall_fscore_support(
+        #             ground_truth, predictions, labels=classes
+        #         )
+        #     break
+        # else:
+        metric_score = []
+        if by_feature:
+            # noinspection GrazieInspection
+            for feature_idx in range(ground_truth.shape[1]):
+                feat_gt = ground_truth[:, feature_idx]
+                feat_pred = predictions[:, feature_idx]
+                score = evaluate_metric(feat_gt, feat_pred, metric_name, classes)
+                metric_score.append(score)
+
+                # r2 = r2_score(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                # mse = mean_squared_error(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                # corr = pearsonr(ground_truth[:, feature_idx], predictions[:, feature_idx])[0]
+                # # corr2 = np.corrcoef(ground_truth[:, feature_idx], predictions[:, feature_idx])[0,1]
+                # cos_sim = cosine_similarity(
+                #     ground_truth[:, feature_idx].reshape(1, -1), predictions[:, feature_idx].reshape(1, -1)
+                # ).item()
+                # cos_dist = distance.cosine(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                # euc_dist = distance.euclidean(ground_truth[:, feature_idx], predictions[:, feature_idx])
+                # print(f"R2: {r2}, "
+                #       f"MSE: {mse}, "
+                #       f"corr: {corr}, "
+                #       f"cosine similarity: {cos_sim}, "
+                #       f"cosine distance: {cos_dist}, "
+                #       f"euclidean distance: {euc_dist},")
+                # scores.append([f"feature_{feature_idx}", r2, mse, corr, cos_sim, euc_dist])
         else:
-            metric_score = []
-            if by_feature:
-                # noinspection GrazieInspection
-                for feature_idx in range(ground_truth.shape[1]):
-                    feat_gt = ground_truth[:, feature_idx]
-                    feat_pred = predictions[:, feature_idx]
-                    score = evaluate_metric(feat_gt, feat_pred, metric_name, classes)
-                    metric_score.append(score)
+            # noinspection GrazieInspection
+            for i in range(ground_truth.shape[0]):
+                sample_gt = ground_truth[i]
+                sample_pred = predictions[i]
+                score = evaluate_metric(sample_gt, sample_pred, metric_name, classes)
+                metric_score.append(score)
+        scores[metric_name] = np.array(metric_score)
 
-                    # r2 = r2_score(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                    # mse = mean_squared_error(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                    # corr = pearsonr(ground_truth[:, feature_idx], predictions[:, feature_idx])[0]
-                    # # corr2 = np.corrcoef(ground_truth[:, feature_idx], predictions[:, feature_idx])[0,1]
-                    # cos_sim = cosine_similarity(
-                    #     ground_truth[:, feature_idx].reshape(1, -1), predictions[:, feature_idx].reshape(1, -1)
-                    # ).item()
-                    # cos_dist = distance.cosine(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                    # euc_dist = distance.euclidean(ground_truth[:, feature_idx], predictions[:, feature_idx])
-                    # print(f"R2: {r2}, "
-                    #       f"MSE: {mse}, "
-                    #       f"corr: {corr}, "
-                    #       f"cosine similarity: {cos_sim}, "
-                    #       f"cosine distance: {cos_dist}, "
-                    #       f"euclidean distance: {euc_dist},")
-                    # scores.append([f"feature_{feature_idx}", r2, mse, corr, cos_sim, euc_dist])
-            else:
-                # noinspection GrazieInspection
-                for i in range(ground_truth.shape[0]):
-                    sample_gt = ground_truth[i]
-                    sample_pred = predictions[i]
-                    score = evaluate_metric(
-                        sample_gt, sample_pred, metric_name, classes
-                    )
-                    metric_score.append(score)
+    return scores
 
-            # r2 = r2_score(ground_truth[i], predictions[i])
-            # mse = mean_squared_error(ground_truth[i], predictions[i])
-            # corr = pearsonr(ground_truth[i], predictions[i])[0]
-            # # corr2 = np.corrcoef(ground_truth[i], predictions[i])[0,1]
-            # cos_sim = cosine_similarity(
-            #     ground_truth[i].reshape(1, -1), predictions[i].reshape(1, -1)
-            # ).item()
-            # cos_dist = distance.cosine(ground_truth[i], predictions[i])
-            # euc_dist = distance.euclidean(ground_truth[i], predictions[i])
-            # print(f"R2: {r2}, "
-            #       f"MSE: {mse}, "
-            #       f"corr: {corr}, "
-            #       f"cosine similarity: {cos_sim}, "
-            #       f"cosine distance: {cos_dist}, "
-            #       f"euclidean distance: {euc_dist},")
-            # scores.append([f"sample_{i}", r2, mse, corr, cos_sim, euc_dist])
-            scores[metric_name] = np.array(metric_score)
+    # r2 = r2_score(ground_truth[i], predictions[i])
+    # mse = mean_squared_error(ground_truth[i], predictions[i])
+    # corr = pearsonr(ground_truth[i], predictions[i])[0]
+    # # corr2 = np.corrcoef(ground_truth[i], predictions[i])[0,1]
+    # cos_sim = cosine_similarity(
+    #     ground_truth[i].reshape(1, -1), predictions[i].reshape(1, -1)
+    # ).item()
+    # cos_dist = distance.cosine(ground_truth[i], predictions[i])
+    # euc_dist = distance.euclidean(ground_truth[i], predictions[i])
+    # print(f"R2: {r2}, "
+    #       f"MSE: {mse}, "
+    #       f"corr: {corr}, "
+    #       f"cosine similarity: {cos_sim}, "
+    #       f"cosine distance: {cos_dist}, "
+    #       f"euclidean distance: {euc_dist},")
+    # scores.append([f"sample_{i}", r2, mse, corr, cos_sim, euc_dist])
+
     # scores_df = pd.DataFrame(
     #     scores,
     #     columns=[
@@ -337,8 +338,6 @@ def evaluate_model_performance(
     #         "euc_dist",
     #     ],
     # )
-
-    return scores
 
 
 def evaluate_metric(
@@ -367,34 +366,44 @@ def evaluate_metric(
         score = all_positives
     elif metric == "recall_raw":
         # Boolean array where ground truth is positive
-        is_positive = y_true == 1
-
+        is_positive = ground_truth == 1
         # Indices of positive cases
         positive_indices = np.where(is_positive)[0]
-
         # Predictions corresponding to positive ground truth cases
-        predictions_for_positives = y_pred[positive_indices]
-
+        predictions_for_positives = predictions[positive_indices]
         # Boolean array indicating correct predictions
         correct_predictions = predictions_for_positives == 1
-
         # Number of correct predictions (True Positives)
         num_true_positives = np.sum(correct_predictions)
-
         # Total number of positives in ground truth
         num_positives_in_ground_truth = np.sum(is_positive)
-
         # Recall calculation
         recall = num_true_positives / num_positives_in_ground_truth
-
         score = recall
     elif (metric == "precision") or (metric == "prec"):
         score = precision_score(
             y_true=ground_truth, y_pred=predictions, labels=classes, average="weighted"
         )
-    elif (metric == "recall") or (metric == "rec") or (metric == "sensitivity"):
+    elif (
+        (metric == "binary_recall")
+        or (metric == "binary_rec")
+        or (metric == "binary_sensitivity")
+    ):
         score = recall_score(
-            y_true=ground_truth, y_pred=predictions, labels=classes, average="weighted"
+            y_true=ground_truth,
+            y_pred=predictions,
+            labels=classes,
+            average="binary",
+            pos_label=1,
+            zero_division=np.nan,
+        )
+    elif (metric == "weighted_recall") or (metric == "weighted_rec"):
+        score = recall_score(
+            y_true=ground_truth,
+            y_pred=predictions,
+            labels=classes,
+            average="weighted",
+            zero_division=np.nan,
         )
     elif (metric == "correlation") or (metric == "corr"):
         score = pearsonr(ground_truth, predictions)[0]
@@ -413,6 +422,7 @@ def evaluate_metric(
         # UserWarning: A single label was found in 'y_true' and 'y_pred'. For the confusion matrix to have the correct shape, use the 'labels' parameter to pass all known labels.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
+            # When adjusted=true, the result is adjusted for chance, so that random performance would score 0, while keeping perfect performance at a score of 1.
             score = balanced_accuracy_score(
                 y_true=ground_truth, y_pred=predictions, adjusted=False
             )

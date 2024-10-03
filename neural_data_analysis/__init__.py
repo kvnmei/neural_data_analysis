@@ -56,6 +56,8 @@ from .plotting import (
     plot_scatter_with_images,
     plot_tsne_projections,
     plot_variance_explained,
+    # plot neural data
+    plot_neuron_firing_rate,
     plot_raster_psth,
     compute_psth,
     compute_psth_per_category,
@@ -67,9 +69,11 @@ from .plotting import (
 from .statistics import (
     shift_binary_array,
     shuffle_binary_array_by_group,
+    significance_stars,
     t_test,
     check_normality,
     check_homogeneity_of_variances,
+    gini_coefficient,
     plot_data_distribution,
 )
 from .utils import (

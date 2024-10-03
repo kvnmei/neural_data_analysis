@@ -27,6 +27,7 @@ from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, save, show
 from bokeh.transform import factor_cmap
+from dulwich.config import Value
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -91,12 +92,33 @@ def plot_scatter(
     if backend == "seaborn":
         fig, ax = plt.subplots(figsize=(12, 8))
 
-        sns.scatterplot(data=data, ax=ax, x=x_column, y=y_column, palette="viridis")
+        sns.scatterplot(data=data, ax=ax, x=x_column, y=y_column)
 
         # Set title and axis labels from kwargs
         ax.set_title(kwargs.get("title", "Scatter Plot"))
         ax.set_xlabel(kwargs.get("xlabel", "Columns"))
         ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+
+        # Check if diagonal line should be added
+        add_diagonal = kwargs.get("add_diagonal", False)
+        if add_diagonal:
+            # Determine the limits for the diagonal
+            x_min, x_max = ax.get_xlim()
+            y_min, y_max = ax.get_ylim()
+            min_val = min(x_min, y_min)
+            max_val = max(x_max, y_max)
+
+            # Plot the diagonal line y = x
+            ax.plot(
+                [min_val, max_val], [min_val, max_val], ls="--", c="red", label="y = x"
+            )
+
+            # Update the limits to make sure the diagonal fits well
+            ax.set_xlim(min_val, max_val)
+            ax.set_ylim(min_val, max_val)
+
+            # Add legend to identify the diagonal line
+            ax.legend()
 
         plt.tight_layout()
 
@@ -907,28 +929,31 @@ def plot_heatmap_matrix(
     )  # 1.0 per row, 2.0 for title and x/y labels
 
     if backend.lower() == "seaborn":
-        fig, ax = plt.subplots(figsize=(fig_width, fig_length))
-        sns.heatmap(
-            matrix,
-            ax=ax,
-            cmap="viridis",
-            annot=True,
-            xticklabels=xtick_labels,
-            yticklabels=kwargs.get("ytick_labels"),
-        )
+        try:
+            fig, ax = plt.subplots(figsize=(fig_width, fig_length))
+            sns.heatmap(
+                matrix,
+                ax=ax,
+                cmap="viridis",
+                annot=True,
+                xticklabels=xtick_labels,
+                yticklabels=kwargs.get("ytick_labels"),
+            )
 
-        # Set title and axis labels from kwargs
-        ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
-        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
-        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+            # Set title and axis labels from kwargs
+            ax.set_title(kwargs.get("title", "Binary Matrix Heatmap"))
+            ax.set_xlabel(kwargs.get("xlabel", "Columns"))
+            ax.set_ylabel(kwargs.get("ylabel", "Rows"))
 
-        plt.tight_layout()
+            plt.tight_layout()
 
-        if save_filename:
-            # Create the plots directory if it doesn't exist
-            fig.savefig(save_dir / save_filename)
+            if save_filename:
+                # Create the plots directory if it doesn't exist
+                fig.savefig(save_dir / save_filename)
 
-        plt.show()
+            plt.show()
+        except ValueError as e:
+            print(e)
 
     else:
         raise ValueError(f"Invalid backend: {backend}. Choose from 'seaborn'.")

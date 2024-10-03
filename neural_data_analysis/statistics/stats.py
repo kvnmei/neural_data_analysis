@@ -5,6 +5,17 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+def significance_stars(p_value):
+    if p_value <= 0.001:
+        return "***"
+    elif p_value <= 0.01:
+        return "**"
+    elif p_value <= 0.05:
+        return "*"
+    else:
+        return ""
+
+
 def t_test(data: np.ndarray, labels, alpha=0.05) -> tuple[float, float]:
     """Perform a t-test on the data.
 

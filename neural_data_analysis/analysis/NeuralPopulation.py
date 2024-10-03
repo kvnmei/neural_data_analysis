@@ -18,8 +18,8 @@ class NeuralPopulation:
 
     def __repr__(self):
         # Class name
-        details = f"Class: {self.__class__.__name__}"
-        details = f"Number of Neurons: {len(self.neurons)}"
+        details = f"Class: {self.__class__.__name__}\n"
+        details += f"Number of Neurons: {len(self.neurons)}\n"
         # Class attributes
         details += f"Attributes: \n"
         for key in self.__dict__:
@@ -67,4 +67,5 @@ class NeuralPopulation:
             self.logger.info(
                 f"The number of cells in [{ba}] brain region(s) is [{len(ba_cells)}]."
             )
+        self.logger.info(f"Total number of neurons: {len(self.neurons)}\n")
         return regions, counts

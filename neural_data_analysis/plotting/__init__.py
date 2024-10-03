@@ -1,3 +1,5 @@
+from .firing_rate_over_time import plot_neuron_firing_rate
+
 from .model_results import (
     model_performance_by_brain_area,
     model_performance_by_time,

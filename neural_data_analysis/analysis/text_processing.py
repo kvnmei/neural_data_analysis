@@ -118,7 +118,6 @@ def create_word_groups(words):
     #             if synonym_lemma in word_groups:
     #                 combined_groups[representative].update(word_groups[synonym_lemma])
 
-    print("Word groups created.")
     return word_groups
 
 
