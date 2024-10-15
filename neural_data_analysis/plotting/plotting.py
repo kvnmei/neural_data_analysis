@@ -16,7 +16,8 @@ import base64
 import io
 import os
 from pathlib import Path
-from typing import List
+
+from typing import Union, List, Optional
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +28,6 @@ from bokeh.models import ColumnDataSource, HoverTool
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, save, show
 from bokeh.transform import factor_cmap
-from dulwich.config import Value
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
@@ -55,78 +55,220 @@ def plot_histogram(data: pd.DataFrame) -> None:
 # Function: plot_scatter
 # ========================================
 def plot_scatter(
-    data, x_column: str, y_column: str, backend="seaborn", **kwargs
+    data: pd.DataFrame, x_column: str, y_column: str, backend: str = "seaborn", **kwargs
 ) -> None:
     """
-    Plots a scatter plot of the data.
+    Plots a scatter plot of the data with optional hue, palette, and annotations.
 
     Parameters:
-        data (pd.DataFrame):
+        data (pd.DataFrame): The DataFrame containing the data to plot.
         x_column (str): Column name for the x-axis.
         y_column (str): Column name for the y-axis.
-
-        backend (str): Plotting package to use. Options: "seaborn" or "matplotlib".
+        backend (str): Plotting package to use. Options: "seaborn" or "matplotlib". Default is "seaborn".
 
     Optional kwargs:
-        title (str, optional): Title of the plot.
-        xlabel (str, optional): Label for the x-axis.
-        ylabel (str, optional): Label for the y-axis.
+        figsize (tuple, optional): Size of the figure. Default is (12, 8).
+        title (str, optional): Title of the plot. Default is "Scatter Plot".
+        xlabel (str, optional): Label for the x-axis. Default is the name of x_column.
+        ylabel (str, optional): Label for the y-axis. Default is the name of y_column.
         xtick_labels (list, optional): Custom labels for the x-axis ticks.
         ytick_labels (list, optional): Custom labels for the y-axis ticks.
-        save_dir (str or Path, optional): Directory to save the plot.
-        save_filename (str, optional): File name to save the plot.
+        add_diagonal (bool, optional): Whether to add a diagonal line y = x. Default is False.
+        save_dir (str or Path, optional): Directory to save the plot. Default is "plots".
+        save_filename (str, optional): File name to save the plot. Default is "scatter_plot.png".
+        hue (str, optional): Column name to map plot aspects (e.g., color). Default is None.
+        palette (str or list, optional): Palette for the hue mapping. Default is None.
+        word_labels (str or list of str, optional): Column name or list containing labels to annotate points. Default is None.
+        annotate (bool, optional): Whether to annotate points with labels. Requires 'word_labels'. Default is False.
+        size (str or float, optional): Column name or value to control marker sizes. Default is None.
+        sizes (tuple of (float, float), optional): Min and max size for mapping marker sizes when 'size' is a column. Default is (20, 200).
 
     Returns:
         None
     """
-    sns.set_theme(style="white")
+    # Set the aesthetic style of the plots
+    sns.set_theme(style="whitegrid")
 
-    # Set the default save directory if not provided
-    save_dir = kwargs.get("save_dir", Path("plots"))
-    save_dir = Path(save_dir)  # Ensure save_dir is a Path object
+    # Extract optional parameters with defaults
+    figsize: tuple = kwargs.get("figsize", (12, 8))
+    title: str = kwargs.get("title", "Scatter Plot")
+    xlabel: str = kwargs.get("xlabel", x_column)
+    ylabel: str = kwargs.get("ylabel", y_column)
+    xtick_labels: Optional[List[str]] = kwargs.get("xtick_labels", None)
+    ytick_labels: Optional[List[str]] = kwargs.get("ytick_labels", None)
+    add_diagonal: bool = kwargs.get("add_diagonal", False)
+    save_dir: Path = Path(kwargs.get("save_dir", "plots"))
     save_dir.mkdir(parents=True, exist_ok=True)
+    save_filename: str = kwargs.get("save_filename", "scatter_plot.png")
+    hue: Optional[str] = kwargs.get("hue", None)
+    palette: Optional[Union[str, List[str]]] = kwargs.get("palette", None)
+    word_labels: Optional[Union[str, List[str]]] = kwargs.get("word_labels", None)
+    annotate: bool = kwargs.get("annotate", False)
+    size: Optional[Union[str, float]] = kwargs.get("size", None)
+    sizes: Tuple[float, float] = kwargs.get("sizes", (20, 200))
 
-    # Set the default save file name if not provided
-    save_filename = kwargs.get("save_filename", "scatter_plot.png")
+    # Validate backend
+    if backend not in ["seaborn", "matplotlib"]:
+        raise ValueError("Unsupported backend. Choose 'seaborn' or 'matplotlib'.")
+
+    # Create the figure and axes explicitly
+    fig, ax = plt.subplots(figsize=figsize)
 
     if backend == "seaborn":
-        fig, ax = plt.subplots(figsize=(12, 8))
+        # Prepare scatterplot parameters
+        scatter_kwargs = {
+            "data": data,
+            "x": x_column,
+            "y": y_column,
+            "ax": ax,
+            "s": 100,  # Default marker size
+            "alpha": 0.7,
+            "edgecolor": "w",
+        }
 
-        sns.scatterplot(data=data, ax=ax, x=x_column, y=y_column)
+        # Add hue and palette if provided
+        if hue:
+            scatter_kwargs["hue"] = hue
+            scatter_kwargs["palette"] = palette
 
-        # Set title and axis labels from kwargs
-        ax.set_title(kwargs.get("title", "Scatter Plot"))
-        ax.set_xlabel(kwargs.get("xlabel", "Columns"))
-        ax.set_ylabel(kwargs.get("ylabel", "Rows"))
+        # Add size and sizes if provided
+        if size:
+            scatter_kwargs["size"] = size
+            scatter_kwargs["sizes"] = sizes
+        else:
+            scatter_kwargs["s"] = 100  # Default marker size
 
-        # Check if diagonal line should be added
-        add_diagonal = kwargs.get("add_diagonal", False)
-        if add_diagonal:
-            # Determine the limits for the diagonal
-            x_min, x_max = ax.get_xlim()
-            y_min, y_max = ax.get_ylim()
-            min_val = min(x_min, y_min)
-            max_val = max(x_max, y_max)
+        # Create the scatter plot
+        scatter = sns.scatterplot(**scatter_kwargs)
 
-            # Plot the diagonal line y = x
-            ax.plot(
-                [min_val, max_val], [min_val, max_val], ls="--", c="red", label="y = x"
+    elif backend == "matplotlib":
+        # Prepare scatterplot parameters
+        scatter_kwargs = {
+            "x": data[x_column],
+            "y": data[y_column],
+            "s": 100,  # Default marker size
+            "alpha": 0.7,
+            "edgecolors": "w",
+            "c": "blue",  # Default color
+            "marker": "o",
+        }
+
+        # Add hue and palette if provided
+        if hue:
+            if hue not in data.columns:
+                raise ValueError(f"Hue column '{hue}' not found in data.")
+            unique_values = data[hue].unique()
+            if isinstance(palette, str):
+                palette_colors = sns.color_palette(palette, len(unique_values))
+            elif isinstance(palette, list):
+                if len(palette) < len(unique_values):
+                    raise ValueError("Not enough colors provided in palette.")
+                palette_colors = palette
+            else:
+                palette_colors = sns.color_palette("deep", len(unique_values))
+
+            color_mapping = {
+                val: palette_colors[i] for i, val in enumerate(unique_values)
+            }
+            colors = data[hue].map(color_mapping)
+
+            scatter_kwargs["c"] = colors
+
+        # Add size if provided
+        if size:
+            if isinstance(size, str):
+                if size not in data.columns:
+                    raise ValueError(f"Size column '{size}' not found in data.")
+                # Normalize sizes to the specified range
+                size_values = data[size]
+                size_norm = (size_values - size_values.min()) / (size_values.max() - size_values.min())
+                scatter_kwargs["s"] = size_norm * (sizes[1] - sizes[0]) + sizes[0]
+            elif isinstance(size, (int, float)):
+                scatter_kwargs["s"] = size
+            else:
+                raise TypeError("Size must be a column name (str) or a numeric value (int or float).")
+        else:
+            scatter_kwargs["s"] = 100  # Default marker size
+
+        # Create the scatter plot
+        scatter = ax.scatter(**scatter_kwargs)
+
+        # Create a legend if hue is used
+        if hue:
+            handles = []
+            for val, color in color_mapping.items():
+                handles.append(
+                    plt.Line2D(
+                        [], [], marker="o", linestyle="", color=color, label=str(val)
+                    )
+                )
+            ax.legend(
+                handles=handles, title=hue, bbox_to_anchor=(1.05, 1), loc="upper left"
             )
 
-            # Update the limits to make sure the diagonal fits well
-            ax.set_xlim(min_val, max_val)
-            ax.set_ylim(min_val, max_val)
+    # Set title and axis labels
+    ax.set_title(title, fontsize=16)
+    ax.set_xlabel(xlabel, fontsize=14)
+    ax.set_ylabel(ylabel, fontsize=14)
 
-            # Add legend to identify the diagonal line
-            ax.legend()
+    # Set custom tick labels if provided
+    if xtick_labels:
+        ax.set_xticklabels(xtick_labels)
+    if ytick_labels:
+        ax.set_yticklabels(ytick_labels)
 
-        plt.tight_layout()
+    # Add diagonal line if requested
+    if add_diagonal:
+        x_min, x_max = ax.get_xlim()
+        y_min, y_max = ax.get_ylim()
+        min_val = min(x_min, y_min)
+        max_val = max(x_max, y_max)
+        ax.plot([min_val, max_val], [min_val, max_val], ls="--", c="red", label="y = x")
+        ax.set_xlim(min_val, max_val)
+        ax.set_ylim(min_val, max_val)
+        ax.legend()
 
-        if save_filename:
-            # Create the plots directory if it doesn't exist
-            fig.savefig(save_dir / save_filename)
+    # Annotate points with word labels if requested
+    if annotate and word_labels is not None:
+        if isinstance(word_labels, str):
+            if word_labels not in data.columns:
+                raise ValueError(
+                    f"word_labels column '{word_labels}' not found in data."
+                )
+            labels = data[word_labels]
+        elif isinstance(word_labels, list):
+            if len(word_labels) != len(data):
+                raise ValueError(
+                    "Length of word_labels list must match number of data points."
+                )
+            labels = word_labels
+        else:
+            raise TypeError(
+                "word_labels must be a column name (str) or a list of strings."
+            )
 
-        plt.show()
+        for i, label in enumerate(labels):
+            ax.text(
+                data.iloc[i][x_column] + 0.005 * (ax.get_xlim()[1] - ax.get_xlim()[0]),
+                data.iloc[i][y_column] + 0.005 * (ax.get_ylim()[1] - ax.get_ylim()[0]),
+                label,
+                horizontalalignment="left",
+                size="medium",
+                color="black",
+                weight="normal",
+            )
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
+    # Save the plot if save_filename is provided
+    if save_filename:
+        save_path = save_dir / save_filename
+        fig.savefig(save_path)
+        print(f"Plot successfully saved to {save_path}")
+
+    # Display the plot
+    plt.show()
 
 
 def plot_scatter_with_images(
@@ -594,7 +736,7 @@ def plot_design_matrix(design_matrix):
 def create_polar_plot_tuning_curve(
     df, neuron_id, custom_order=None, metric_to_plot="importance_avg_abs", **kwargs
 ) -> None:
-    """Create a rose plot for a single neuron.
+    """Create a polar plot for a single neuron.
 
     Parameters:
         df (DataFrame): The DataFrame containing neuron data.
@@ -649,7 +791,7 @@ def create_polar_plot_tuning_curve(
     else:
         raise ValueError(f"Invalid metric to plot: {metric_to_plot}")
     print(
-        f"Plotting the rose plot for neuron [{neuron_id}] with metric [{metric_to_plot}]."
+        f"Plotting the polar plot for neuron [{neuron_id}] with metric [{metric_to_plot}]."
     )
 
     # Repeat the first value to close the circle
@@ -668,15 +810,15 @@ def create_polar_plot_tuning_curve(
     ax.tick_params(pad=20)
     # Add title
     ax.set_title(
-        f"Rose Plot for Neuron {neuron_id}\nMetric: {metric_to_plot}", size=20, y=1.1
+        f"Polar Plot for Neuron {neuron_id}\nMetric: {metric_to_plot}", size=20, y=1.1
     )
+    plt.tight_layout()
 
     # Save the plot to the specified directory with the specified file name
     plot_path = save_dir / save_filename
     fig.savefig(plot_path)
 
     # Show the plot
-    plt.tight_layout()
     plt.show()
 
 
@@ -923,7 +1065,7 @@ def plot_heatmap_matrix(
         num_xlabels = matrix.shape[1]
 
     # Determine the figure width based on the number of x labels
-    fig_width = max(12.0, num_xlabels * 0.75)  # Minimum width of 12, and 0.75 per label
+    fig_width = max(12.0, num_xlabels * 0.75)  # Min width of 12, and 0.75 per label
     fig_length = (
         matrix.shape[0] * 1.0 + 2.0
     )  # 1.0 per row, 2.0 for title and x/y labels

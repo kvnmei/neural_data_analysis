@@ -11,6 +11,14 @@ import openai
 import yaml
 from tqdm import tqdm
 
+gpt_configs = {
+    "gpt-4": {
+        "gpt_engine": "gpt-4",
+        "openai_api_key": None,
+        "pregenerate_prompts": False,
+    }
+}
+
 
 class GPTInterface:
     def __init__(self, config: dict, classnames: list = None, n_prompts: int = None):
