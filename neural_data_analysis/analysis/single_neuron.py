@@ -8,7 +8,7 @@ import numpy as np
 
 
 def calc_firing_rates(
-    event_times: List[float], spike_times: np.ndarray, window: List[float]
+    event_times: list[float], spike_times: np.ndarray, window: list[float]
 ) -> np.ndarray:
     """
     Calculate the firing rate in a given window relative to an event.
