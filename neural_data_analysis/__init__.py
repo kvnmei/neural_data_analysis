@@ -22,6 +22,7 @@ from .analysis import (
     Neuron,
     calculate_model_performance,
     ResNet50Embedder,
+    ResultsLoader,
     subset_cells,
     TextEmbedder,
     SGPTEmbedder,

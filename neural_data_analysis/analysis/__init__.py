@@ -29,7 +29,7 @@ from .single_neuron import calc_firing_rates
 from .MLPModelWrapper import (
     MLPModelWrapper,
 )
-
+from .ResultsLoader import ResultsLoader
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 from .text_processing import (
     get_synonyms_wordnet,
