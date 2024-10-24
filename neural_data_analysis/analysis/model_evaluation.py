@@ -20,6 +20,7 @@ from sklearn.metrics import (
 import logging
 import warnings
 from typing import Union
+from tqdm import tqdm
 
 
 def calculate_model_performance(
@@ -213,7 +214,7 @@ def append_model_scores(
     # Calculate the model performance for each row of the dataframe
     # Typically, each row is a cross-validation fold
     scores = []
-    for i in range(len(df)):
+    for i in tqdm(range(len(df))):
         row_score = evaluate_model_performance(
             df[gt_col][i],
             df[pred_col][i],
@@ -680,34 +681,30 @@ def combine_across_iterations(
     if isinstance(target_var, str):
         target_var = tuple(target_var)
 
-    combiined_result_list_dict = []
+    combined_results_list = []
     n_iter = len(np.unique(df[iter_var]))
 
     for i in np.arange(0, len(df), n_iter):
-        _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
+        _temp = df.iloc[i : i + n_iter].copy(deep=True).reset_index(drop=True)
         combined_result_dict = {}
+
+        # keep columns in the original dataframe
         for col in columns_to_keep:
             combined_result_dict[f"{col}"] = _temp[f"{col}"][0]
 
+        # append all the target variables into one
         for var in target_var:
-            # Convert Series to DataFrame
-            df = pd.DataFrame(_temp[var].tolist())
+            combined_var = np.vstack(_temp[var].to_numpy())
 
-            # Sum each column
-            column_ = df.sum()
-
-            # Convert sums to list if needed
-            sums_list = column_sums.tolist()
-
-            summed_result_dict.update(
+            combined_result_dict.update(
                 {
-                    f"{var}_sum": sums_list,
+                    f"{var}_combined": combined_var,
                 }
             )
-        summed_result_list_dict.append(summed_result_dict)
+        combined_results_list.append(combined_result_dict)
 
-    summed_result_df = pd.DataFrame(summed_result_list_dict)
-    return summed_result_df
+    combined_result_df = pd.DataFrame(combined_results_list)
+    return combined_result_df
 
 
 def reshape_into_2d(arr: np.ndarray) -> np.ndarray:
