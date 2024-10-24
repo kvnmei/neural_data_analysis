@@ -1,5 +1,7 @@
 from .analysis import (
+    aggregate_metrics_across_iterations,
     average_across_iterations,
+    combine_across_iterations,
     sum_across_iterations,
     embedder_from_spec,
     append_model_scores,

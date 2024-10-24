@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import polars as pl
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.metrics.pairwise import cosine_similarity
@@ -18,6 +19,7 @@ from sklearn.metrics import (
 # from tabulate import tabulate
 import logging
 import warnings
+from typing import Union
 
 
 def calculate_model_performance(
@@ -496,6 +498,61 @@ def residual_analysis(y_val, preds):
     return None
 
 
+def aggregate_metrics_across_iterations(
+    df: Union[pd.DataFrame, pl.DataFrame],
+    iter_var_column: str,
+    target_metric_columns: list[str],
+    method: str = "average",
+    columns_to_keep: list[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
+) -> Union[pd.DataFrame, pl.DataFrame]:
+    if isinstance(df, pd.DataFrame):
+        match method:
+            case "average":
+                return average_across_iterations(
+                    df,
+                    iter_var=iter_var_column,
+                    target_var=target_metric_columns,
+                    columns_to_keep=columns_to_keep,
+                )
+            case "sum":
+                return sum_across_iterations(
+                    df,
+                    iter_var=iter_var_column,
+                    target_var=target_metric_columns,
+                    columns_to_keep=columns_to_keep,
+                )
+            case _:
+                raise ValueError(f"Method {method} not supported.")
+    elif isinstance(df, pl.DataFrame):
+        # TODO: These are not implemented yet for the polars case
+        match method:
+            case "average":
+                return average_across_iterations_pl(
+                    df,
+                    iter_var=iter_var_column,
+                    target_var=target_metric_columns,
+                    columns_to_keep=columns_to_keep,
+                )
+            case "sum":
+                return sum_across_iterations_pl(
+                    df,
+                    iter_var=iter_var_column,
+                    target_var=target_metric_columns,
+                    columns_to_keep=columns_to_keep,
+                )
+            case _:
+                raise ValueError(f"Method {method} not supported.")
+    else:
+        raise ValueError(f"Dataframe type {type(df)} not supported.")
+
+    return None
+
+
 def average_across_iterations(
     df: pd.DataFrame,
     iter_var: str,
@@ -602,12 +659,51 @@ def sum_across_iterations(
                     f"{var}_sum": sums_list,
                 }
             )
-            # variable_sum = np.sum(_temp[var].to_numpy(), axis=1)
-            # summed_result_dict.update(
-            #     {
-            #         f"{var}_sum": variable_sum,
-            #     }
-            # )
+        summed_result_list_dict.append(summed_result_dict)
+
+    summed_result_df = pd.DataFrame(summed_result_list_dict)
+    return summed_result_df
+
+
+def combine_across_iterations(
+    df: pd.DataFrame,
+    iter_var: str,
+    target_var: list[str],
+    columns_to_keep: list[str] = (
+        "brain_area",
+        "bin_center",
+        "bin_size",
+        "embedding",
+    ),
+) -> pd.DataFrame:
+    #  dataframe conversion, for now just fixed by making it a string
+    if isinstance(target_var, str):
+        target_var = tuple(target_var)
+
+    combiined_result_list_dict = []
+    n_iter = len(np.unique(df[iter_var]))
+
+    for i in np.arange(0, len(df), n_iter):
+        _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
+        combined_result_dict = {}
+        for col in columns_to_keep:
+            combined_result_dict[f"{col}"] = _temp[f"{col}"][0]
+
+        for var in target_var:
+            # Convert Series to DataFrame
+            df = pd.DataFrame(_temp[var].tolist())
+
+            # Sum each column
+            column_ = df.sum()
+
+            # Convert sums to list if needed
+            sums_list = column_sums.tolist()
+
+            summed_result_dict.update(
+                {
+                    f"{var}_sum": sums_list,
+                }
+            )
         summed_result_list_dict.append(summed_result_dict)
 
     summed_result_df = pd.DataFrame(summed_result_list_dict)
