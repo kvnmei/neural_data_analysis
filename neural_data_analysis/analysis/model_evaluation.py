@@ -708,6 +708,7 @@ def combine_across_iterations(
 
 
 def reshape_into_2d(arr: np.ndarray) -> np.ndarray:
+    # noinspection GrazieInspection
     """
     Turns a numpy ndarray of 1-d shape (n,) into (n, 1) or keeps 2-d shape (n, m) into (n, m).
 

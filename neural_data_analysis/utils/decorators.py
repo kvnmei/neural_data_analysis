@@ -4,7 +4,8 @@ def add_default_repr(cls):
         details = f"Class: {self.__class__.__name__}\n"
         details += "Attributes:\n"
         for key, value in self.__dict__.items():
-            details += f"  {key}: {value!r} (type: {type(value).__name__})\n"
+            # details += f"  {key}: {value!r} (type: {type(value).__name__})\n"
+            details += f"  {key}: {type(self.__dict__[key])}\n"
         methods = [
             method_name
             for method_name in dir(self)
