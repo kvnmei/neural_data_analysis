@@ -10,6 +10,7 @@ from .ImageEmbedder import (
 )
 
 from .LinearModelWrapper import LinearModelWrapper
+from .LogisticModelWrapper import LogisticModelWrapper
 from .model_evaluation import (
     append_model_scores,
     evaluate_model_performance,
