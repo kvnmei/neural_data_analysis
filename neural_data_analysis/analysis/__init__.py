@@ -33,12 +33,8 @@ from .MLPModelWrapper import (
 )
 from .ResultsLoader import ResultsLoader
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
-from .text_processing import (
-    get_synonyms_wordnet,
-    get_stem,
-    create_word_groups,
-    reduce_word_list_synonyms,
-    create_excluded_words,
+from .NLPProcessor import (
+    NLPProcessor,
 )
 
 __version__ = "0.0.1"

@@ -1,4 +1,6 @@
 import logging
+import logging.config
+import yaml
 from pathlib import Path
 
 
@@ -9,11 +11,11 @@ def setup_logger(
     Set up a custom logger with a file handler and a console handler.
 
     Parameters:
-        logger_name:
-        log_filepath:
+        logger_name (str): Name of the logger.
+        log_filepath (Path): Path to the log file.
 
     Returns:
-        logger (logging.Logger): A custom logger with a file handler and a console handler.
+        logging.Logger: Configured logger with file and stream handlers.
     """
     # Create a custom logger
     logger = logging.getLogger(logger_name)

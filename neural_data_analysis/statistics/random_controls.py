@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import numpy as np
 from numpy import ndarray
 
@@ -203,3 +201,32 @@ def reconstruct_binary_array_from_groups(
     result.extend([0] * zero_distribution[-1])
 
     return np.array(result)
+
+
+def generate_random_clusters(
+    array_length, num_clusters, max_cluster_size, rng: np.random.Generator
+):
+    """
+    Generate a binary array with random clusters of ones.
+
+    Parameters:
+        array_length (int): Length of the binary array.
+        num_clusters (int): Number of clusters of ones to generate.
+        max_cluster_size (int): Maximum size of each cluster of ones.
+
+    Returns:
+        numpy.ndarray: A binary array with random clusters of ones.
+    """
+    array = np.zeros(array_length, dtype=int)
+
+    for _ in range(num_clusters):
+        cluster_size = rng.integers(1, max_cluster_size + 1)
+        start_index = rng.integers(0, array_length - cluster_size + 1)
+
+        # Ensure that we don't overwrite existing clusters
+        while np.any(array[start_index : start_index + cluster_size] == 1):
+            start_index = rng.integers(0, array_length - cluster_size + 1)
+
+        array[start_index : start_index + cluster_size] = 1
+
+    return array

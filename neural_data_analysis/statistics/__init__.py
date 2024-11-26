@@ -2,6 +2,7 @@ from .metrics import gini_coefficient
 from .random_controls import (
     shift_binary_array,
     shuffle_binary_array_by_group,
+    generate_random_clusters,
 )
 from .stats import (
     significance_stars,

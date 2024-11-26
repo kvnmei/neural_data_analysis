@@ -28,11 +28,7 @@ from .analysis import (
     subset_cells,
     TextEmbedder,
     SGPTEmbedder,
-    get_stem,
-    get_synonyms_wordnet,
-    create_word_groups,
-    reduce_word_list_synonyms,
-    create_excluded_words,
+    NLPProcessor,
 )
 
 from .constants import (
@@ -76,6 +72,7 @@ from .statistics import (
     t_test,
     check_normality,
     check_homogeneity_of_variances,
+    generate_random_clusters,
     gini_coefficient,
     plot_data_distribution,
 )
