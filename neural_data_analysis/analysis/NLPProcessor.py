@@ -51,7 +51,7 @@ class NLPProcessor:
         return logger
 
     @lru_cache(maxsize=None)
-    def get_part_of_speech(self, word: str) -> str:
+    def get_part_of_speech(self, word: str, verbose: bool = False) -> str:
         """
         Get the WordNet part of speech tag for a given word.
 
@@ -70,7 +70,8 @@ class NLPProcessor:
                 "R": wordnet.ADV,
             }
             pos = tag_dict.get(tag, wordnet.NOUN)
-            self.logger.debug(f"POS for '{word}': {pos}")
+            if verbose:
+                self.logger.debug(f"POS for '{word}': {pos}")
             return pos
         except IndexError:
             # Default to noun if POS tagging fails
@@ -79,7 +80,7 @@ class NLPProcessor:
             )
             return wordnet.NOUN
 
-    def get_lemma(self, word: str) -> str:
+    def get_lemma(self, word: str, verbose: bool = False) -> str:
         """
         Lemmatize a word based on its part of speech.
 
@@ -92,7 +93,8 @@ class NLPProcessor:
         try:
             pos = self.get_part_of_speech(word)
             lemma = self.lemmatizer.lemmatize(word, pos)
-            self.logger.debug(f"Lemmatized '{word}' to '{lemma}' with POS '{pos}'.")
+            if verbose:
+                self.logger.debug(f"Lemmatized '{word}' to '{lemma}' with POS '{pos}'.")
             return lemma
         except Exception as e:
             # Log the exception and return the original word
@@ -100,7 +102,7 @@ class NLPProcessor:
             return word
 
     @lru_cache(maxsize=None)
-    def get_synonyms_wordnet(self, word: str) -> list[str]:
+    def get_synonyms_wordnet(self, word: str, verbose: bool = False) -> list[str]:
         """
         Get the synonyms of a word using WordNet.
 
@@ -117,10 +119,11 @@ class NLPProcessor:
                 if synonym.lower() != word.lower():
                     synonyms.add(synonym)
         synonym_list = sorted(synonyms)
-        self.logger.debug(f"Synonyms for '{word}': {synonym_list}")
+        if verbose:
+            self.logger.debug(f"Synonyms for '{word}': {synonym_list}")
         return synonym_list
 
-    def get_stem(self, word: str) -> str:
+    def get_stem(self, word: str, verbose: bool = False) -> str:
         """
         Stem a word using PorterStemmer.
 
@@ -131,10 +134,11 @@ class NLPProcessor:
             str: The stemmed word.
         """
         stem = self.stemmer.stem(word)
-        self.logger.debug(f"Stemmed '{word}' to '{stem}'.")
+        if verbose:
+            self.logger.debug(f"Stemmed '{word}' to '{stem}'.")
         return stem
 
-    def create_excluded_words(self) -> set[str]:
+    def create_excluded_words(self, verbose: bool = False) -> set[str]:
         """
         Create a set of words to filter out based on English stopwords.
 
@@ -142,10 +146,13 @@ class NLPProcessor:
             set(str): Set of excluded words.
         """
         excluded_words = set(stopwords.words("english"))
-        self.logger.debug(f"Excluded words: {excluded_words}")
+        if verbose:
+            self.logger.debug(f"Excluded words: {excluded_words}")
         return excluded_words
 
-    def create_word_groups(self, words: list[str]) -> dict[str, set[str]]:
+    def create_word_groups(
+        self, words: list[str], verbose: bool = False
+    ) -> dict[str, set[str]]:
         """
         Create groups of words that are synonyms or different forms (e.g., plural).
 
@@ -189,7 +196,8 @@ class NLPProcessor:
             if base_word not in word_groups:
                 word_groups[base_word] = set()
             word_groups[base_word].add(word)
-            self.logger.debug(f"Grouped '{word}' under '{base_word}'.")
+            if verbose:
+                self.logger.debug(f"Grouped '{word}' under '{base_word}'.")
 
         self.logger.info(f"Created word groups: {word_groups}")
         return word_groups
@@ -199,6 +207,7 @@ class NLPProcessor:
         word_list: list[str],
         method: str = "manual",
         synonym_groups: Optional[list[list[str]]] = None,
+        verbose: bool = False,
     ) -> list[str]:
         """
         Reduce a list of words by grouping synonyms together.
@@ -235,15 +244,17 @@ class NLPProcessor:
                 primary_word = group[0].lower()
                 for word in group:
                     synonym_dict[word.lower()] = primary_word
-                    self.logger.debug(
-                        f"Mapping '{word.lower()}' to '{primary_word}' in synonym_dict."
-                    )
+                    if verbose:
+                        self.logger.info(
+                            f"Mapping '{word.lower()}' to '{primary_word}' in synonym_dict."
+                        )
 
             for word in word_list:
                 primary_word = synonym_dict.get(word.lower(), word.lower())
                 if primary_word not in reduced_list:
                     reduced_list.append(primary_word)
-                    self.logger.debug(f"Added '{primary_word}' to reduced_list.")
+                    if verbose:
+                        self.logger.info(f"Added '{primary_word}' to reduced_list.")
 
             self.logger.info(f"Reduced word list using manual method: {reduced_list}")
             return reduced_list
@@ -260,9 +271,10 @@ class NLPProcessor:
                 if combined_words:
                     representative = combined_words[0]
                     reduced_list.append(representative)
-                    self.logger.debug(
-                        f"Added '{representative}' as representative of {combined_words}."
-                    )
+                    if verbose:
+                        self.logger.info(
+                            f"Added '{representative}' as representative of {combined_words}."
+                        )
                 visited_words.update(combined_words)
 
             self.logger.info(f"Reduced word list using WordNet method: {reduced_list}")
