@@ -19,6 +19,7 @@ from .analysis import (
     NewOld,
     VideoFrame,
     LinearModelWrapper,
+    LogisticModelWrapper,
     MLPModelWrapper,
     NeuralPopulation,
     Neuron,
