@@ -1,31 +1,13 @@
 #!/usr/bin/env python3
-import itertools
-import pickle
+
 import socket
 from datetime import datetime
 from pathlib import Path
 import logging
-import shap
-import numpy as np
-import pandas as pd
-import xgboost as xgb
+
 import yaml
 from ..utils import add_default_repr
-from scipy.special import expit
-from sklearn.model_selection import KFold, StratifiedKFold
-from tqdm import tqdm
-from sklearn.metrics import (
-    accuracy_score,
-    hamming_loss,
-    balanced_accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-)
-import torch
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.multioutput import MultiOutputClassifier
+
 from abc import ABC, abstractmethod
 from ..utils import setup_logger, setup_default_logger
 
@@ -85,54 +67,38 @@ class Experiment(ABC):
                 If false, will create a save directory and output the config file and log file to the directory.
 
         """
-        self.config: dict = config.get("ExperimentRunner", {})
+        self.config: dict = config
         self.load_only = load_only
 
-        # Setup logging and directories
-        self._setup_experiment_environment()
-
-        # Log the configuration file and the save directory.
-        self.logger.info(
-            f"LOADED: Config file [{config['general']['config_file']}] in ExperimentRunner class."
-        )
-        self.logger.info(f"COMPLETED: Created save directory [{str(self.save_dir)}].")
+        if load_only:
+            self.logger = setup_default_logger()
+            self.logger.info(
+                "LOAD ONLY MODE for ExperimentRunner class. No experiment_name or save_dir created."
+            )
+        else:
+            # This function gets overloaded by the child class implementation so it will jump right to the child._initialize_experiment()
+            self._initialize_experiment()
 
         # Placeholder for data
         self.neural_data: dict = None
         self.video_data: dict = None
 
-    def _setup_experiment_environment(self):
-        if self.load_only:
-            self.logger = setup_default_logger()
-        else:
-            # Create save directory and logger
-            self.experiment_name = self.create_experiment_name()
-            self.save_dir = self.create_save_dir()
-            self.logger = setup_logger(
-                logger_name="logger",
-                log_filepath=Path(f"{self.save_dir}/{self.experiment_name}.log"),
-            )
+    def _initialize_experiment(self):
+        # Create experiment name and save directory
+        self.experiment_name = self._create_experiment_name()
+        self.save_dir = self._create_save_dir()
 
-            # Save the config file
-            self._save_config(self.config)
-
-    def create_experiment_name(self) -> str:
+    def _create_experiment_name(self) -> str:
         """
-        Create experiment name based on the date, project name, experiment name, experiment type, and model name.
-        The project name and experiment name are taken from the config file. The experiment type and model name are
-        hardcoded in the config file.
-        This experiment name is then used for the save directory, log file, and results file.
-
         Returns:
-            full_experiment_name (str): string of the experiment name
+            str: string of the experiment name
         """
-        project_name = self.config.get("project_name", "project")
-        experiment_name = self.config.get("experiment_name", "experiment")
         date = datetime.now().strftime("%Y-%m-%d")
-        full_experiment_name = f"{date}_{project_name}_{self.config['type']}_{self.config['model']}_{experiment_name}"
+        project_name = self.config.get("project_name", "project")
+        full_experiment_name = f"{date}_{project_name}"
         return full_experiment_name
 
-    def create_save_dir(self) -> Path:
+    def _create_save_dir(self) -> Path:
         """
         Create a save directory for the results.
 
@@ -141,57 +107,39 @@ class Experiment(ABC):
         Returns:
             save_dir (Path): Path to the save directory.
         """
-        results_id = 1
         experiment_name = self.experiment_name
-        save_dir = Path(
-            f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
-        )
+
+        # Get the full hostname
+        full_hostname = socket.gethostname()
+        # Split the hostname at '.' and take the first part
+        short_hostname = full_hostname.split("-")[0]
+
+        results_id = 1
+        save_dir = Path(f"results/{experiment_name}_{short_hostname}_{results_id}")
 
         while Path(save_dir).exists():
             results_id += 1
-            save_dir = Path(
-                f"results/{experiment_name}_{socket.gethostname()}_{results_id}"
-            )
-        save_dir.mkdir(parents=True, exist_ok=True)
-        return save_dir
+            save_dir = Path(f"results/{experiment_name}_{short_hostname}_{results_id}")
 
-    def _setup_logger(self):
-        # Implement your logger setup here
-        logger = logging.getLogger("experiment_logger")
-        logger.setLevel(logging.INFO)
-        # Add handlers, formatters, etc.
-        return logger
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        return save_dir
 
     def _save_config(self, config):
         config_filename = f"{self.experiment_name}_config.yaml"
         with open(self.save_dir / config_filename, "w") as f:
             yaml.dump(config, f)
         self.logger.info(
-            f"SAVED Config file [{config_filename}] to [{self.save_dir}].\n"
+            f"SAVED: Config file [{config_filename}] to [{self.save_dir}].\n"
         )
 
     @abstractmethod
-    def load_data(self):
+    def _load_data(self):
         """Load the data required for the experiment."""
         pass
 
     @abstractmethod
-    def preprocess_data(self):
-        """Preprocess the data before training."""
-        pass
-
-    @abstractmethod
-    def train_model(self):
-        """Train the model."""
-        pass
-
-    @abstractmethod
-    def evaluate_model(self):
-        """Evaluate the model."""
-        pass
-
-    @abstractmethod
-    def save_results(self):
+    def _save_results(self):
         """Save the results of the experiment."""
         pass
 

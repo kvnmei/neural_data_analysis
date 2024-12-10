@@ -146,7 +146,7 @@ class LinearModelWrapper:
 
 
 if __name__ == "__main__":
-    cfg = yaml.load(open("tests/config.yaml", "r"), Loader=yaml.FullLoader)
+    cfg = yaml.load(open("../analysis/tests/config.yaml", "r"), Loader=yaml.FullLoader)
 
     # Create some random data
     np.random.seed(0)

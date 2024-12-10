@@ -5,6 +5,8 @@ from functools import lru_cache
 import string
 from typing import Optional
 import logging
+import numpy as np
+import re
 
 # Download necessary NLTK resources
 nltk.download("stopwords")
@@ -57,6 +59,7 @@ class NLPProcessor:
 
         Args:
             word (str): The word to get the POS tag for.
+            verbose (bool): Whether to log debug information.
 
         Returns:
             str: The WordNet POS tag (e.g., NOUN, VERB).
@@ -86,6 +89,7 @@ class NLPProcessor:
 
         Args:
             word (str): The word to lemmatize.
+            verbose (bool): Whether to log debug information.
 
         Returns:
             str: The lemmatized word.
@@ -101,6 +105,42 @@ class NLPProcessor:
             self.logger.warning(f"Lemmatization failed for word '{word}': {e}")
             return word
 
+    def plural_to_singular(self, word: str) -> str:
+        # 1. Custom dictionary of known plurals
+        known_plurals = {
+            "men": "man",
+            "women": "woman",
+            "children": "child",
+            "people": "person",
+            "feet": "foot",
+            "teeth": "tooth",
+            "geese": "goose",
+            # Add more known exceptions here
+        }
+        if word in known_plurals:
+            return known_plurals[word]
+
+        # 2. Inflect
+        p = inflect.engine()
+        singular_inflect = p.singular_noun(word)
+        if singular_inflect:  # singular_noun returns False if no singular found
+            return singular_inflect
+
+        # 3. NLTK WordNet Lemmatizer
+        lemmatizer = WordNetLemmatizer()
+        singular_lemma = lemmatizer.lemmatize(word, pos="n")
+        if singular_lemma and singular_lemma != word:
+            return singular_lemma
+
+        # 4. Pattern's singularize (if pattern is available)
+        if pattern_singularize is not None:
+            pattern_sing = pattern_singularize(word)
+            if pattern_sing and pattern_sing != word:
+                return pattern_sing
+
+        # 5. If all else fails, return the original word
+        return word
+
     @lru_cache(maxsize=None)
     def get_synonyms_wordnet(self, word: str, verbose: bool = False) -> list[str]:
         """
@@ -108,6 +148,7 @@ class NLPProcessor:
 
         Args:
             word (str): The word to find synonyms for.
+            verbose (bool): Whether to log debug information.
 
         Returns:
             list[str]: A list of synonyms.
@@ -129,6 +170,7 @@ class NLPProcessor:
 
         Args:
             word (str): The word to stem.
+            verbose (bool): Whether to log debug information.
 
         Returns:
             str: The stemmed word.
@@ -146,18 +188,20 @@ class NLPProcessor:
             set(str): Set of excluded words.
         """
         excluded_words = set(stopwords.words("english"))
+
         if verbose:
             self.logger.debug(f"Excluded words: {excluded_words}")
         return excluded_words
 
     def create_word_groups(
-        self, words: list[str], verbose: bool = False
+        self, words: list[str] | np.ndarray[str], verbose: bool = False
     ) -> dict[str, set[str]]:
         """
         Create groups of words that are synonyms or different forms (e.g., plural).
 
         Args:
             words (list[str]): List of unique words.
+            verbose (bool): Whether to log debug information.
 
         Returns:
             dict[str, Set[str]]: Dictionary mapping representative words to their group members.
@@ -183,22 +227,39 @@ class NLPProcessor:
             "woods": "wood",
         }
 
-        # Remove punctuation from words
-        cleaned_words = [
-            word.lower() for word in words if word not in string.punctuation
-        ]
-        self.logger.debug(f"Cleaned words (no punctuation, lowercase): {cleaned_words}")
-
+        # Create a translation table for removing punctuation from words
+        remove_punc = str.maketrans("", "", string.punctuation)
         word_groups: dict[str, set[str]] = {}
-        for word in cleaned_words:
-            # Get the base form of the word
-            base_word = known_plurals.get(word, self.get_lemma(word))
+        for w in words:
+            word_lowercase = w.lower()
+
+            # Remove trailing possessive markers: 's or '
+            # This removes "'s" at the end of a word, e.g. "sally's" -> "sally"
+            word_non_possessive = re.sub(r"'s$", "", word_lowercase)
+            word_non_possessive = re.sub(r"'$", "", word_non_possessive)
+
+            word_cleaned = word_non_possessive.translate(remove_punc)
+
+            # Skip if empty after cleaning
+            if not word_cleaned:
+                continue
+
+            # Get base form (lemma or known plural)
+            # Note that get_lemma() from WordNetLemmatizer is used to get singular form
+            base_word = known_plurals.get(word_cleaned, self.get_lemma(word_cleaned))
+
             if base_word not in word_groups:
                 word_groups[base_word] = set()
-            word_groups[base_word].add(word)
-            if verbose:
-                self.logger.debug(f"Grouped '{word}' under '{base_word}'.")
 
+            # Add the original word (present in the caption (as list of strings) and various forms)
+            # Because the goal is to create a mapping from the captions (as list of strings) to the base word
+            word_groups[base_word].add(w)
+            word_groups[base_word].add(word_cleaned)
+
+            if verbose:
+                self.logger.debug(f"Grouped '{w}' under '{base_word}'.")
+
+        word_groups = dict(sorted(word_groups.items()))
         self.logger.info(f"Created word groups: {word_groups}")
         return word_groups
 
@@ -216,9 +277,10 @@ class NLPProcessor:
             word_list (list[str]): A list of words to be reduced.
             method (str, optional): The method to used for reducing the word list.
                 Either "manual" or "wordnet". Defaults to "manual".
-            synonym_groups (Optional[list[list[str]]], optional):
+            synonym_groups (list[list[str]]):
                 A list of synonym groups where each group is a list of synonyms.
                 Required if method is "manual". Defaults to None.
+            verbose (bool, optional): Whether to log debug information. Defaults
 
         Raises:
             ValueError: If method is "manual" but synonym_groups is not provided.

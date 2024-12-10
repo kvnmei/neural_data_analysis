@@ -46,6 +46,7 @@ class MLPModelWrapper:
             "batch_size": self.config["batch_size"],
             "max_epochs": self.config["max_epochs"],
             "problem_type": self.config["problem_type"],
+            "pos_weights": self.config.get("pos_weights", None),
         }
         if self.hparams["problem_type"] == "multi_class_classification":
             self.model = MLPMultiClassClassifier(self.hparams)
@@ -211,7 +212,11 @@ class MLPBinaryClassifier(pl.LightningModule):
             )
 
         # cross entropy loss
-        self.criterion = torch.nn.BCEWithLogitsLoss()
+        if self.params["pos_weights"] is None or self.params["pos_weights"] is False:
+            pos_weight = None
+        else:
+            pos_weight = torch.ones([self.params["output_dims"]])
+        self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.train_losses = []
         self.val_losses = []
         self.train_mean_epoch_losses = []
@@ -241,7 +246,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.train_losses.append(loss.item())
-        predictions = (torch.sigmoid(y_hat) > 0.5).float()
+        predictions = float((torch.sigmoid(y_hat) > 0.5))
         acc = self.accuracy(predictions, y)
         self.train_acc.append(acc.item())
         return loss
@@ -266,7 +271,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.val_losses.append(loss.item())
-        predictions = (torch.sigmoid(y_hat) > 0.5).float()
+        predictions = float((torch.sigmoid(y_hat) > 0.5))
         acc = self.accuracy(predictions, y)
         self.val_acc.append(acc.item())
         return loss

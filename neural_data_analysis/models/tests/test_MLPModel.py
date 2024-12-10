@@ -13,7 +13,7 @@ class TestRandomData(unittest.TestCase):
     """
 
     def setUp(self):
-        with open("config.yaml", "r") as cfg:
+        with open("../../analysis/tests/config.yaml", "r") as cfg:
             self.config = yaml.load(cfg, Loader=yaml.FullLoader)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
