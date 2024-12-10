@@ -1,16 +1,10 @@
 """
-
 """
-
 import numpy as np
 import yaml
 from sklearn.cross_decomposition import PLSRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
-import matplotlib.pyplot as plt
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.datasets import make_multilabel_classification
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
