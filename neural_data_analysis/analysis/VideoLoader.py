@@ -421,7 +421,9 @@ class VideoLoader(ABC):
         Returns:
             np.ndarray: Multilabel binary embeddings of the frames.
         """
-        self.logger.info("Creating multilabel one-hot encoding for image captions.")
+        self.logger.info(
+            "----- Creating multilabel one-hot encoding for image captions -----"
+        )
 
         # Initialize NLPProcessor
         self.nlp_processor = NLPProcessor(logger=self.logger)
@@ -434,7 +436,7 @@ class VideoLoader(ABC):
         # Create word groups (e.g., synonyms, plural forms)
         word_groups = self.nlp_processor.create_word_groups(words=words)
         self.logger.info(
-            "Created word groups for mapping words to representative base words."
+            "Created word groups for mapping caption words to representative base words."
         )
 
         # Map captions to list of representative words that will be compared to target word labels to decode
@@ -508,7 +510,7 @@ class VideoLoader(ABC):
         # Store attributes
         self.blip2_control_labels = control_labels
         self.blip2_words_df = word_labels_df
-        self.logger.info("Completed creation of multilabel one-hot encodings.\n")
+        self.logger.info("COMPLETED: creation of multilabel one-hot encodings.\n")
 
         return one_hot_matrix.astype(int)
 
@@ -587,6 +589,7 @@ class VideoLoader(ABC):
         Returns:
             embeddings (dict): A dictionary of embeddings, with embedder names as keys.
         """
+        self.logger.info("----- Creating video frame embeddings -----")
         embeddings: dict[str, torch.Tensor | dict[str, torch.Tensor]] = {}
         save_dir = Path("precomputed/")
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -597,10 +600,14 @@ class VideoLoader(ABC):
             embeddings_filename = f"video_frame_embeddings_{embedder_name}.h5"
             embeddings_path = save_dir / embeddings_filename
 
+            self.logger.info(f"Creating embeddings for [{embedding_name}]...")
             # Load or create embeddings
             if embeddings_path.exists():
                 self.logger.info(
-                    f"Loading precomputed embeddings for [{embedding_name}]"
+                    f"Precomputed embeddings for [{embedding_name}] found."
+                )
+                self.logger.info(
+                    "Loading precomputed embeddings for [{embedding_name}]"
                     f" from [{str(save_dir / embeddings_filename)}]"
                 )
                 embedding = self._load_embeddings_from_file(embeddings_path)

@@ -260,7 +260,8 @@ class NLPProcessor:
                 self.logger.debug(f"Grouped '{w}' under '{base_word}'.")
 
         word_groups = dict(sorted(word_groups.items()))
-        self.logger.info(f"Created word groups: {word_groups}")
+        if verbose:
+            self.logger.info(f"Created word groups: {word_groups}")
         return word_groups
 
     def reduce_word_list_synonyms(

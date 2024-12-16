@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
+from typing import Union
+import pandas as pd
+import polars as pl
+import numpy as np
+from .Event import Event
 
 
-# noinspection DuplicatedCode
 class Neuron:
     """
     A class to represent a single neuron.
     """
 
     def __init__(self):
-        self.id = None
-        self.brain_area = None
-        self.brain_area_abbreviation = None
-        self.spike_times = None
-        self.patient = None
-        self.patient_session = None
-        self.session = None
+        self.id: str = None
+        self.brain_area: str = None
+        self.brain_area_abbreviation: str = None
+        self.brain_area_hemisphere: str = None
+        self.mni_coordinates: dict = {}
+        self.spike_times: np.ndarray = None
+        self.patient: str = None
+        self.patient_session: str = None
+        self.session: str = None
+        self.trials: Union[pd.DataFrame, pl.DataFrame] = None
+        self.events: list[Event] = []
 
     def __repr__(self):
         # Class name

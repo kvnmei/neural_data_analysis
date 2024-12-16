@@ -212,10 +212,9 @@ class MLPBinaryClassifier(pl.LightningModule):
             )
 
         # cross entropy loss
-        if self.params["pos_weights"] is None or self.params["pos_weights"] is False:
-            pos_weight = None
-        else:
-            pos_weight = torch.ones([self.params["output_dims"]])
+        pos_weight = self.params.get("pos_weights", None)
+        if pos_weight is not None:
+            pos_weight = torch.from_numpy(pos_weight).float()
         self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.train_losses = []
         self.val_losses = []
@@ -246,7 +245,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.train_losses.append(loss.item())
-        predictions = float((torch.sigmoid(y_hat) > 0.5))
+        predictions = (torch.sigmoid(y_hat) > 0.5).int()
         acc = self.accuracy(predictions, y)
         self.train_acc.append(acc.item())
         return loss
@@ -271,7 +270,7 @@ class MLPBinaryClassifier(pl.LightningModule):
             on_epoch=True,
         )
         self.val_losses.append(loss.item())
-        predictions = float((torch.sigmoid(y_hat) > 0.5))
+        predictions = (torch.sigmoid(y_hat) > 0.5).int()
         acc = self.accuracy(predictions, y)
         self.val_acc.append(acc.item())
         return loss
