@@ -9,9 +9,9 @@ import numpy as np
 import re
 
 # Download necessary NLTK resources
-nltk.download("stopwords")
-nltk.download("wordnet")
-nltk.download("averaged_perceptron_tagger")
+# nltk.download("stopwords")
+# nltk.download("wordnet")
+# nltk.download("averaged_perceptron_tagger")
 
 
 class NLPProcessor:

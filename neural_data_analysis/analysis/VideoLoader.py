@@ -275,13 +275,15 @@ class VideoLoader(ABC):
         )
         return frame_word_labels
 
-    @staticmethod
     def _create_control_encodings(
-        n_frames: int, rng: np.random.Generator
+        self, n_frames: int, rng: np.random.Generator
     ) -> tuple[np.ndarray, list[str]]:
         """
         Create control encodings with predefined patterns.
         """
+        self.logger.info(
+            "Creating control encodings. E.g., half-half, random, all-zero, all-one, clustered."
+        )
         control_labels = [
             "half_half1",
             "half_half2",
@@ -336,8 +338,8 @@ class VideoLoader(ABC):
 
         return control_encodings, control_labels
 
-    @staticmethod
     def _create_shuffled_encodings(
+        self,
         encodings: np.ndarray,
         labels: list[str],
         n_frames: int,
@@ -350,7 +352,10 @@ class VideoLoader(ABC):
         shuffled_encodings = []
         shuffled_labels = []
 
-        for i, label in enumerate(tqdm(labels, desc="Creating shuffled controls")):
+        self.logger.info(
+            f"Creating {n_shuffled_controls} shuffled controls for each of {len(labels)} labels."
+        )
+        for i, label in enumerate(tqdm(labels, desc=f"Creating shuffled controls")):
             word_encoding = encodings[:, i]
             random_seeds = rng.choice(
                 np.arange(1, n_frames), size=n_shuffled_controls, replace=False
@@ -365,8 +370,8 @@ class VideoLoader(ABC):
         shuffled_encodings = np.hstack(shuffled_encodings)
         return shuffled_encodings, shuffled_labels
 
-    @staticmethod
     def _create_shifted_encodings(
+        self,
         encodings: np.ndarray,
         labels: list[str],
         n_frames: int,
@@ -387,7 +392,10 @@ class VideoLoader(ABC):
                 shift_range, size=n_shifted_controls, replace=False
             )
 
-        for i, label in enumerate(tqdm(labels, desc="Creating shifted controls")):
+        self.logger.info(
+            f"Creating {n_shifted_controls} shifted controls for each of {len(labels)} labels."
+        )
+        for i, label in enumerate(tqdm(labels, desc=f"Creating shifted controls")):
             word_encoding = encodings[:, i]
             for shift in shift_values:
                 shifted_encoding = np.roll(word_encoding, shift)
@@ -546,7 +554,8 @@ class VideoLoader(ABC):
             raise
 
     def _embed_frames(
-        self, embedder_name: str
+        self,
+        embedder_name: str,
     ) -> torch.Tensor | dict[str, torch.Tensor]:
         """
         Embeds frames using a specified embedder and returns the resulting embeddings.
@@ -556,7 +565,9 @@ class VideoLoader(ABC):
             self.frames, self.frames_info = self.load_video_frames()
 
         images = torch.stack([transforms.ToTensor()(frame) for frame in self.frames])
-        image_embedder = embedder_from_spec(embedder_name)
+        image_embedder = embedder_from_spec(
+            embedder_name, embedder_configs=self.embedder_configs
+        )
         return image_embedder.embed(images)
 
     def _process_blip2_embeddings(self, embedding: list[bytes | str]) -> ndarray:
