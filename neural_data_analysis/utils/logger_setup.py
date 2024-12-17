@@ -71,4 +71,5 @@ def setup_default_logger():
         # Add the handler to the logger
         logger.addHandler(console_handler)
 
+    logger.propagate = False
     return logger
