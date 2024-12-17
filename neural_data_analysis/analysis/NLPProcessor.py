@@ -7,9 +7,9 @@ from typing import Optional
 import logging
 
 # Download necessary NLTK resources
-nltk.download("stopwords")
-nltk.download("wordnet")
-nltk.download("averaged_perceptron_tagger")
+# nltk.download("stopwords")
+# nltk.download("wordnet")
+# nltk.download("averaged_perceptron_tagger")
 
 
 class NLPProcessor:
@@ -184,9 +184,7 @@ class NLPProcessor:
         }
 
         # Remove punctuation from words
-        cleaned_words = [
-            word.lower() for word in words if word not in string.punctuation
-        ]
+        cleaned_words = [''.join(char for char in word if char not in string.punctuation).lower() for word in words]
         self.logger.debug(f"Cleaned words (no punctuation, lowercase): {cleaned_words}")
 
         word_groups: dict[str, set[str]] = {}
