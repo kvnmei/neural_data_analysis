@@ -11,7 +11,7 @@ from ..utils import add_default_repr
 from abc import ABC, abstractmethod
 from ..utils import setup_logger, setup_default_logger
 
-from ..models import LogisticModelWrapper, MLPModelWrapper
+from ..models import LogisticModelWrapper, MLPModelWrapper, LSTMModelWrapper
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.preprocessing import StandardScaler
@@ -246,44 +246,62 @@ class Experiment(ABC):
         Initialize the model class based on the model type.
 
         Args:
-            X_train (np.ndarray): input data for training
-            y_train (np.ndarray): output data for training
-            y_val (np.ndarray): output data for validation
+            X (np.ndarray): input data
+            y (np.ndarray): output data
             model_type (str): model type to initialize
 
         Returns:
             Class of the model_type.
         """
-        if model_type == "linear":
-            model_config = model_configs.get("LinearModel")
+        input_dims = X.shape[1]
+        output_dims = Y.shape[1] if len(Y.shape) > 1 else 1
+
+        if model_type == "logistic":
+            model_config = model_configs.get("LogisticModel")
             model = LogisticModelWrapper(model_config)
         elif model_type == "mlp":
             model_config = model_configs.get("MLPModel")
-            model = self._initialize_mlp_model(model_config)
+            model_config["input_dims"] = input_dims
+            model_config["output_dims"] = output_dims
+
+            if model_config.get("use_pos_weights", False):
+                # calculate weights for imbalanced classes, setting to 1 if all samples are positive or negative
+                # ratio of negative class labels to positive labels. If negative labels are 2:1,
+                # then assigns a weight of 2 to the sparser positive labels
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
+                pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
+                pos_weights[pos_weights == 0] = 1
+                # assign these weights to the config
+                model_config["pos_weights"] = pos_weights
+
+            model = self._initialize_mlp_model(model_config, X, Y)
         elif model_type == "xgb":
             model_config = model_configs.get("XGBModel")
             model = self._initialize_xgb_model(model_config)
         elif model_type == "lstm":
             model_config = model_configs.get("LSTMModel")
+            model_config["input_dims"] = input_dims
+            model_config["output_dims"] = output_dims
+
+            if model_config.get("use_pos_weights", False):
+                # calculate weights for imbalanced classes, setting to 1 if all samples are positive or negative
+                # ratio of negative class labels to positive labels. If negative labels are 2:1,
+                # then assigns a weight of 2 to the sparser positive labels
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
+                pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
+                pos_weights[pos_weights == 0] = 1
+                # assign these weights to the config
+                model_config["pos_weights"] = pos_weights
+
             model = LSTMModelWrapper(model_config)
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
         return model, model_config
 
-    def _initialize_mlp_model(self, mlp_config: dict):
-
-        problem_type = model_config.get("problem_type")
-
-        input_dim = X.shape[1]
-        output_dim = Y.shape[1] if len(Y.shape) > 1 else 1
-
-        if model_config.get("use_pos_weights", False):
-            # calculate weights for imbalanced classes, setting to 1 if all samples are positive or negative
-            with np.errstate(divide="ignore", invalid="ignore"):
-                pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
-            pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
-            pos_weights[pos_weights == 0] = 1
-            model_config["pos_weights"] = pos_weights
+    def _initialize_mlp_model(self, mlp_config: dict, X, Y):
+        problem_type = mlp_config.get("problem_type")
 
         if problem_type == "binary_classification":
             assert len(np.unique(Y)) == 2
@@ -291,15 +309,16 @@ class Experiment(ABC):
             n_classes = len(np.unique(Y))
             assert n_classes > 2
             output_dim = n_classes
+            mlp_config["output_dim"] = output_dim
         elif problem_type == "regression":
             pass
         else:
             raise ValueError(f"Problem type {problem_type} not recognized.")
 
-        model = MLPModelWrapper(model_config, input_dim, output_dim)
+        model = MLPModelWrapper(mlp_config)
         model_class_name = model.model.__class__.__name__
         self.logger.info(
-            f"Model type: [{model_class_name}], Problem type: [{model_config['problem_type']}]."
+            f"Model type: [{model_class_name}], Problem type: [{mlp_config['problem_type']}]."
         )
         return model
 
@@ -345,6 +364,11 @@ class Experiment(ABC):
             model.fit(X_train, y_train, X_val, y_val, run_info)
         elif model_type == "xgb":
             model.fit(X_train, y_train)
+        elif model_type == "lstm":
+            # input needs to be (batch_size, timesteps/seq_length, input_dim/feature_size)
+            X_train_lstm = X_train[:, np.newaxis, :]
+            X_val_lstm = X_val[:, np.newaxis, :]
+            model.fit(X_train_lstm, y_train, X_val_lstm, y_val, run_info)
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
 
