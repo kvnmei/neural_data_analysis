@@ -259,41 +259,49 @@ class Experiment(ABC):
             model = LogisticModelWrapper(model_config)
         elif model_type == "mlp":
             model_config = model_configs.get("MLPModel")
-            problem_type = model_config.get("problem_type")
-
-            input_dim = X.shape[1]
-            output_dim = Y.shape[1] if len(Y.shape) > 1 else 1
-
-            if model_config.get("use_pos_weights", False):
-                # calculate weights for imbalanced classes, setting to 1 if all samples are positive or negative
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
-                pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
-                pos_weights[pos_weights == 0] = 1
-                model_config["pos_weights"] = pos_weights
-
-            if problem_type == "binary_classification":
-                assert len(np.unique(Y)) == 2
-            elif problem_type == "multiclass_classification":
-                n_classes = len(np.unique(Y))
-                assert n_classes > 2
-                output_dim = n_classes
-            elif problem_type == "regression":
-                pass
-            else:
-                raise ValueError(f"Problem type {problem_type} not recognized.")
-
-            model = MLPModelWrapper(model_config, input_dim, output_dim)
-            model_class_name = model.model.__class__.__name__
-            self.logger.info(
-                f"Model type: [{model_class_name}], Problem type: [{model_config['problem_type']}]."
-            )
+            model = self._initialize_mlp_model(model_config)
         elif model_type == "xgb":
             model_config = model_configs.get("XGBModel")
             model = self._initialize_xgb_model(model_config)
+        elif model_type == "lstm":
+            model_config = model_configs.get("LSTMModel")
+            model = LSTMModelWrapper(model_config)
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
         return model, model_config
+
+    def _initialize_mlp_model(self, mlp_config: dict):
+
+        problem_type = model_config.get("problem_type")
+
+        input_dim = X.shape[1]
+        output_dim = Y.shape[1] if len(Y.shape) > 1 else 1
+
+        if model_config.get("use_pos_weights", False):
+            # calculate weights for imbalanced classes, setting to 1 if all samples are positive or negative
+            with np.errstate(divide="ignore", invalid="ignore"):
+                pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
+            pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
+            pos_weights[pos_weights == 0] = 1
+            model_config["pos_weights"] = pos_weights
+
+        if problem_type == "binary_classification":
+            assert len(np.unique(Y)) == 2
+        elif problem_type == "multiclass_classification":
+            n_classes = len(np.unique(Y))
+            assert n_classes > 2
+            output_dim = n_classes
+        elif problem_type == "regression":
+            pass
+        else:
+            raise ValueError(f"Problem type {problem_type} not recognized.")
+
+        model = MLPModelWrapper(model_config, input_dim, output_dim)
+        model_class_name = model.model.__class__.__name__
+        self.logger.info(
+            f"Model type: [{model_class_name}], Problem type: [{model_config['problem_type']}]."
+        )
+        return model
 
     def _initialize_xgb_model(self, xgb_config):
         if xgb_config["problem_type"] == "regression":

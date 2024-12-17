@@ -36,8 +36,7 @@ class VideoLoader(ABC):
         self,
         config: dict,
         logger: logging.Logger = None,
-        embedders_to_use: list[str] = None,
-        embedder_configs: dict[str, dict] = None,
+        embedder_configs: dict = None,
     ):
         """
         Initialize the VideoLoader class with the configuration parameters.
