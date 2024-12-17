@@ -9,8 +9,6 @@ from .ImageEmbedder import (
     DINOEmbedder,
 )
 
-from .LinearModelWrapper import LinearModelWrapper
-from .LogisticModelWrapper import LogisticModelWrapper
 from .model_evaluation import (
     append_model_scores,
     evaluate_model_performance,
@@ -29,14 +27,12 @@ from .neural_population import (
 
 from .single_neuron import calc_firing_rates
 
-from .MLPModelWrapper import (
-    MLPModelWrapper,
-)
 from .ResultsLoader import ResultsLoader
 from .TextEmbedder import SGPTEmbedder, TextEmbedder
 from .NLPProcessor import (
     NLPProcessor,
 )
+from .VideoLoader import VideoLoader
 
 __version__ = "0.0.1"
 __description__ = "A package for the data analysis pipeline of data validation, data wrangling, and hypothesis testing."

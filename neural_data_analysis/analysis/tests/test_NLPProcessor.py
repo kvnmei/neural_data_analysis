@@ -242,7 +242,7 @@ class TestNLPProcessor(unittest.TestCase):
         }
 
         # Due to duplicates in sets, 'dogs' appears once, etc.
-        self.assertEqual(word_groups, expected_groups)
+        self.assertEqual(expected_groups, word_groups)
 
     def test_create_word_groups_with_synonyms(self):
         """

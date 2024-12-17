@@ -1,16 +1,10 @@
 """
-
 """
-
 import numpy as np
 import yaml
 from sklearn.cross_decomposition import PLSRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
-import matplotlib.pyplot as plt
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.datasets import make_multilabel_classification
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
@@ -146,7 +140,7 @@ class LinearModelWrapper:
 
 
 if __name__ == "__main__":
-    cfg = yaml.load(open("tests/config.yaml", "r"), Loader=yaml.FullLoader)
+    cfg = yaml.load(open("../analysis/tests/config.yaml", "r"), Loader=yaml.FullLoader)
 
     # Create some random data
     np.random.seed(0)

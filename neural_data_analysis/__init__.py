@@ -18,9 +18,6 @@ from .analysis import (
     SceneBoundary,
     NewOld,
     VideoFrame,
-    LinearModelWrapper,
-    LogisticModelWrapper,
-    MLPModelWrapper,
     NeuralPopulation,
     Neuron,
     calculate_model_performance,
@@ -30,6 +27,7 @@ from .analysis import (
     TextEmbedder,
     SGPTEmbedder,
     NLPProcessor,
+    VideoLoader,
 )
 
 from .constants import (
@@ -40,6 +38,12 @@ from .constants import (
     gpt_configs,
 )
 
+from .models import (
+    LinearModelWrapper,
+    LogisticModelWrapper,
+    LSTMModelWrapper,
+    MLPModelWrapper,
+)
 from .LFP import (
     apply_notch_filter,
 )
