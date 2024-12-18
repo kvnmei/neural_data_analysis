@@ -52,7 +52,7 @@ def setup_default_logger():
         logger (logging.Logger): A default logger with a console handler.
     """
     # Create a logger
-    logger = logging.getLogger("default")
+    logger = logging.getLogger("DefaultLogger")
     logger.setLevel(logging.INFO)
 
     # Check if the logger already has handlers to avoid duplicate messages
