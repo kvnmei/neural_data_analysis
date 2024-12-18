@@ -13,6 +13,7 @@ from ..utils import setup_logger, setup_default_logger
 
 from ..models import LogisticModelWrapper, MLPModelWrapper, LSTMModelWrapper
 from sklearn.model_selection import KFold, StratifiedKFold
+from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -356,9 +357,27 @@ class Experiment(ABC):
     def _model_fit(
         self, model, X_train, y_train, X_val, y_val, run_info: dict, model_type: str
     ):
-        model_class_name = model.model.__class__.__name__
+        if model_type == "logistic":
+            multi_output_clf = model.model.named_steps["classifier"]
+            logistic_regression_estimator = multi_output_clf.estimator
+            model_class_name = f"{multi_output_clf.__class__.__name__} with {logistic_regression_estimator.__class__.__name__}"
+        else:
+            model_class_name = model.model.__class__.__name__
         self.logger.info(f"Fitting model of class [{model_class_name}]...")
-        if model_type == "linear":
+
+        if model_type == "logistic":
+            single_class_indices = [
+                i for i in range(y_train.shape[1]) if len(np.unique(y_train[:, i])) <= 1
+            ]
+            single_class_labels = np.array(self.video_data_loader.blip2_all_labels)[
+                single_class_indices
+            ]
+            if len(single_class_indices) > 0:
+                self.logger.warning(
+                    f"These class indices only have one label: {single_class_indices}.\n"
+                    f"These are the labels: {single_class_labels}"
+                )
+                return
             model.fit(X_train, y_train)
         elif model_type == "mlp":
             model.fit(X_train, y_train, X_val, y_val, run_info)
@@ -378,6 +397,8 @@ class Experiment(ABC):
             predictions = self._compute_mlp_predictions(
                 predictions=model_predictions, mlp_config=model_config
             )
+        elif model_type == "logistic":
+            predictions = model_predictions
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
         return predictions

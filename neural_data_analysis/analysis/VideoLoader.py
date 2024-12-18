@@ -61,6 +61,7 @@ class VideoLoader(ABC):
         self.nlp_processor = None
         self.blip2_word_labels: list[str] = []
         self.blip2_control_labels: list[str] = []
+        self.blip2_all_labels: list[str] = []
         self.blip2_words_df: pd.DataFrame = pd.DataFrame()
 
         # Load embeddings
@@ -476,7 +477,7 @@ class VideoLoader(ABC):
 
         self.frame_word_labels = filtered_frame_word_labels
         self.blip2_word_labels = copy.deepcopy(labels)
-        
+
         # Create multilabel one-hot encoding
         mlb = MultiLabelBinarizer(classes=labels)
         one_hot_matrix = mlb.fit_transform(filtered_frame_word_labels)
@@ -532,6 +533,7 @@ class VideoLoader(ABC):
         word_labels_df = pd.DataFrame({"word": labels, "count_frames": frame_counts})
 
         # Store attributes
+        self.blip2_all_labels = labels
         self.blip2_control_labels = control_labels
         self.blip2_words_df = word_labels_df
         self.logger.info("COMPLETED: creation of multilabel one-hot encodings.\n")
@@ -649,7 +651,9 @@ class VideoLoader(ABC):
                     f"Saving embedding to {str(save_dir / embeddings_filename)}..."
                 )
                 self._save_embeddings_to_file(embeddings_path, embedding)
-                self.logger.info(f"SAVED: [{embedding_name}] image embeddings to [{embeddings_path}].")
+                self.logger.info(
+                    f"SAVED: [{embedding_name}] image embeddings to [{embeddings_path}]."
+                )
 
             # Process BLIP2 case
             if embedding_name == "blip2":
