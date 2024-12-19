@@ -3,6 +3,7 @@ from abc import ABC
 from pathlib import Path
 import polars as pl
 import pandas as pd
+import copy
 
 import cv2
 import h5py
@@ -46,23 +47,26 @@ class VideoLoader(ABC):
 
         """
 
-        self.logger = logger or setup_default_logger()
+        self.logger: logging.Logger = logger or setup_default_logger()
         self.logger.info("========== Initializing VideoLoader class ==========")
         self.config: dict = config
 
         # Load video frames
-        self.frames = self.load_video_frames()
+        self.frames: np.ndarray = self.load_video_frames()
         self.frames_info = None
-        self.frame_captions = None
+        self.frame_captions: list[list[str]] = None
+        self.frame_word_labels: list[list[str]] = None
         self.original_frame_index = np.arange(self.frames.shape[0])
 
         self.nlp_processor = None
+        self.blip2_word_labels: list[str] = []
         self.blip2_control_labels: list[str] = []
+        self.blip2_all_labels: list[str] = []
         self.blip2_words_df: pd.DataFrame = pd.DataFrame()
 
         # Load embeddings
-        self.embedders_to_use = self.config.get("embedders_to_use")
-        self.embedder_configs = embedder_configs
+        self.embedders_to_use: list = self.config.get("embedders_to_use")
+        self.embedder_configs: dict = embedder_configs
         self.embeddings: dict = self.create_frame_embeddings()
 
     def load_video_frames(
@@ -460,9 +464,23 @@ class VideoLoader(ABC):
             occurrence_minimum=occurrence_minimum,
         )
 
+        # Convert labels to a set for faster lookup
+        representative_set: set[str] = set(labels)
+        # make sure the original labels were a unique set
+        assert labels == sorted(list(representative_set))
+
+        # Filter the frame_word_labels
+        filtered_frame_word_labels: list[list[str]] = [
+            [word for word in frame if word in representative_set]
+            for frame in frame_word_labels
+        ]
+
+        self.frame_word_labels = filtered_frame_word_labels
+        self.blip2_word_labels = copy.deepcopy(labels)
+
         # Create multilabel one-hot encoding
         mlb = MultiLabelBinarizer(classes=labels)
-        one_hot_matrix = mlb.fit_transform(frame_word_labels)
+        one_hot_matrix = mlb.fit_transform(filtered_frame_word_labels)
         self.logger.info(
             f"Created multilabel one-hot matrix with shape {one_hot_matrix.shape}."
         )
@@ -515,6 +533,7 @@ class VideoLoader(ABC):
         word_labels_df = pd.DataFrame({"word": labels, "count_frames": frame_counts})
 
         # Store attributes
+        self.blip2_all_labels = labels
         self.blip2_control_labels = control_labels
         self.blip2_words_df = word_labels_df
         self.logger.info("COMPLETED: creation of multilabel one-hot encodings.\n")
@@ -632,7 +651,9 @@ class VideoLoader(ABC):
                     f"Saving embedding to {str(save_dir / embeddings_filename)}..."
                 )
                 self._save_embeddings_to_file(embeddings_path, embedding)
-                self.logger.info(f"SAVED: {embedding_name} image embeddings.")
+                self.logger.info(
+                    f"SAVED: [{embedding_name}] image embeddings to [{embeddings_path}]."
+                )
 
             # Process BLIP2 case
             if embedding_name == "blip2":

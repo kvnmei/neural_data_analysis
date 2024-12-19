@@ -48,13 +48,13 @@ class LSTMBinaryClassifier(pl.LightningModule):
             dropout=0.0,  # adjust if needed
             bidirectional=bidirectional,
         )
-        self.fc = nn.Linear(hidden_size, output_dims)
+        # hidden layer size is doubled if bidirectional
+        self.fc = nn.Linear(hidden_size * (2 if bidirectional else 1), output_dims)
 
         # Set up loss and metrics
-        if self.params["pos_weights"] is None or self.params["pos_weights"] is False:
-            pos_weight = None
-        else:
-            pos_weight = torch.ones([output_dims])
+        pos_weight = self.params.get("pos_weights", None)
+        if pos_weight is not None:
+            pos_weight = torch.tensor(pos_weight, dtype=torch.float)
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         self.train_losses = []
@@ -71,23 +71,44 @@ class LSTMBinaryClassifier(pl.LightningModule):
         self.val_mean_epoch_acc = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (batch, seq_len, input_dims)
-        # LSTM returns output (batch, seq_len, hidden_size) and (h_n, c_n)
+        # x: (batch_size, seq_len, input_dims)
+        # LSTM returns output (batch_size, seq_len, hidden_size * num_directions) and (h_n, c_n)
         lstm_out, (h_n, c_n) = self.lstm(x)
-        # h_n is the last hidden state of shape (num_layers, batch, hidden_size)
-        # We take the last layer's hidden state for classification
-        last_hidden = h_n[-1]  # shape (batch, hidden_size)
+
+        # h_n shape: (num_layers * num_directions, batch_size, hidden_size)
+        num_directions = 2 if self.params["bidirectional"] else 1
+
+        # Extract the last layer's hidden states
+        # h_n[-num_directions:] contains the last layer's forward and backward hidden states
+        if self.params["bidirectional"]:
+            # Concatenate the forward and backward hidden states
+            last_hidden_forward = h_n[-2]  # Forward direction
+            last_hidden_backward = h_n[-1]  # Backward direction
+            last_hidden = torch.cat(
+                (last_hidden_forward, last_hidden_backward), dim=1
+            )  # (batch_size, hidden_size * 2)
+        else:
+            # h_n is the last hidden state of shape (num_layers, batch, hidden_size)
+            # We take the last layer's hidden state for classification
+            last_hidden = h_n[-1]  # shape (batch, hidden_size)
         logits = self.fc(last_hidden)  # shape (batch, output_dims)
         return logits
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x, y = (
+            batch  # x: [batch_size, seq_length, input_dims], y: [batch_size, output_dims]
+        )
         y_hat = self.forward(x)
+        # y_hat: [batch_size, output_dims]
+        # Ensure y is of type float and on the same device as y_hat
+        y = y.float().to(y_hat.device)
+
         loss = self.criterion(y_hat, y)
         self.log("train_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.train_losses.append(loss.item())
 
-        preds = float((torch.sigmoid(y_hat) > 0.5))
+        # use tensor operations to convert boolean values to float instead of Python's float() casting.
+        preds = (torch.sigmoid(y_hat) > 0.5).float()
         acc = self.accuracy(preds, y)
         self.train_acc.append(acc.item())
         return loss
@@ -101,11 +122,13 @@ class LSTMBinaryClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.forward(x)
+
+        y = y.float().to(y_hat.device)
         loss = self.criterion(y_hat, y)
         self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.val_losses.append(loss.item())
 
-        preds = float((torch.sigmoid(y_hat) > 0.5))
+        preds = (torch.sigmoid(y_hat) > 0.5).float()
         acc = self.accuracy(preds, y)
         self.val_acc.append(acc.item())
         return loss
@@ -117,7 +140,10 @@ class LSTMBinaryClassifier(pl.LightningModule):
         self.val_acc = []
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.params["learning_rate"])
+        # optimizer = torch.optim.Adam(self.parameters(), lr=self.params.get("learning_rate", 1e-3))
+        return torch.optim.AdamW(
+            self.parameters(), lr=self.params.get("learning_rate", 1e-3)
+        )
 
 
 class LSTMModelWrapper:
@@ -132,7 +158,7 @@ class LSTMModelWrapper:
         save(self, path):
     """
 
-    def __init__(self, config: dict[str, Any], input_dims: int, output_dims: int):
+    def __init__(self, config: dict[str, Any]):
         """
         Parameters:
             config (dict): dictionary with hyperparameters
@@ -142,8 +168,8 @@ class LSTMModelWrapper:
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.hparams = {
-            "input_dims": input_dims,
-            "output_dims": output_dims,
+            "input_dims": self.config["input_dims"],
+            "output_dims": self.config["output_dims"],
             "hidden_dims": self.config["hidden_dims"],
             "num_layers": self.config["num_layers"],
             "learning_rate": self.config["lr"],

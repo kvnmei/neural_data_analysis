@@ -7,7 +7,10 @@ from sklearn.linear_model import LogisticRegression
 class LogisticModelWrapper:
     def __init__(self, config: dict):
         self.config = config
-        if self.config["problem_type"] == "multilabel_binary_classification":
+        problem_type = self.config["problem_type"]
+        if (problem_type == "multiclass_classification") or (
+            problem_type == "binary_classification"
+        ):
             # look into binary classification, tweaking params: solver, max_iter, tol, C
             pipe = Pipeline(
                 [

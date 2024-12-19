@@ -25,21 +25,19 @@ class MLPModelWrapper:
         save(self, path):
     """
 
-    def __init__(self, config: dict, input_dims: int, output_dims: int):
+    def __init__(self, config: dict):
         """
         This model defines what type of MLP model to instantiate: classifier or regressor
 
         Parameters:
             config (dict): dictionary with hyperparameters
-            input_dims (int): number of input features
-            output_dims (int): number of output classes or regression targets
 
         """
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.hparams = {
-            "input_dims": input_dims,
-            "output_dims": output_dims,
+            "input_dims": self.config["input_dims"],
+            "output_dims": self.config["output_dims"],
             "hidden_dims": self.config["hidden_dims"],
             "num_layers": self.config["num_layers"],
             "learning_rate": self.config["lr"],
