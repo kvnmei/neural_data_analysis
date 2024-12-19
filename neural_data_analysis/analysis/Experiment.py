@@ -231,8 +231,16 @@ class Experiment(ABC):
             return fold_generator.split(indices_to_split)
 
     def _get_train_val_data(self, X, Y, train_index, val_index):
+        model_type = self.config["ExperimentRunner"]["model_type"]
+
         X_train, X_val = X[train_index], X[val_index]
         y_train, y_val = Y[train_index], Y[val_index]
+
+        if model_type == 'linear':
+            cols_to_keep = [i for i in range(y_train.shape[1]) if len(np.unique(y_train[:, i])) >= 2]
+            y_train = y_train[:, cols_to_keep]
+            y_val = y_val[:, cols_to_keep]
+
         return X_train, X_val, y_train, y_val
 
     def _initialize_model(
@@ -255,7 +263,7 @@ class Experiment(ABC):
             Class of the model_type.
         """
         if model_type == "linear":
-            model_config = model_configs.get("LinearModel")
+            model_config = model_configs.get("LogisticModel")
             model = LogisticModelWrapper(model_config)
         elif model_type == "mlp":
             model_config = model_configs.get("MLPModel")
@@ -354,6 +362,8 @@ class Experiment(ABC):
             predictions = self._compute_mlp_predictions(
                 predictions=model_predictions, mlp_config=model_config
             )
+        elif model_type == "linear":
+            predictions = model.predict(X_val)
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
         return predictions
