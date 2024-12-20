@@ -58,11 +58,24 @@ class ResultsLoader(object):
         return config
 
     def load_predictions(self):
-        pickle_file = glob.glob(f"{self.directory}/*results.pkl")[0]
-        logging.info(f"Loading results file [{pickle_file}]...")
-        results = pickle.load(open(pickle_file, "rb"))
-        logging.info(f"COMPLETED: results file [{pickle_file}] loaded.")
+        try:
+            pickle_file = glob.glob(f"{self.directory}/*results.pkl")[0]
+            logging.info(f"Loading results file [{pickle_file}]...")
+            results = pickle.load(open(pickle_file, "rb"))
+            logging.info(f"COMPLETED: results file [{pickle_file}] loaded.")
+        except:
+            results = None
         return results
+
+    def load_partial_results(self):
+        all_partial = pd.DataFrame()
+        pickle_files = glob.glob(f"{self.directory}/partial_results/*partial*.pkl")
+        for pickle_file in pickle_files:
+            logging.info(f"Loading partial results file [{pickle_file}]...")
+            results = pickle.load(open(pickle_file, "rb"))
+            all_partial = pd.concat([all_partial, results])
+            logging.info(f"COMPLETED: partial results file [{pickle_file}] loaded.")
+        return all_partial
 
     def load_shap(self):
         try:
