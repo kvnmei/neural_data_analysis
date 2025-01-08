@@ -52,6 +52,135 @@ example_config = {
 }
 
 
+# def create_sliding_windows(
+#     X: torch.Tensor, y: torch.Tensor, seq_length: int, label_position: str = "last"
+# ):
+#     """
+#     Creates sliding windows from X and y with overlap.
+#
+#     Args:
+#         X (torch.Tensor): shape (num_samples, num_features)
+#         y (torch.Tensor): shape (num_samples, ...)
+#         seq_length (int): length of each subsequence window
+#         label_position (str): "last" (common for next-step or sequence-level label),
+#                               or "first", or "aggregate" (custom logic).
+#
+#     Returns:
+#         X_slided: shape (num_windows, seq_length, num_features)
+#         y_slided: shape (num_windows, ...) by default
+#     """
+#     num_samples = X.shape[0]
+#     num_windows = num_samples - seq_length + 1
+#     if num_windows <= 0:
+#         raise ValueError(
+#             f"seq_length={seq_length} is too large for the dataset of size {num_samples}."
+#         )
+#
+#     # Collect windows in a list (can also do direct indexing in a loop)
+#     X_list = []
+#     y_list = []
+#
+#     for start_idx in range(num_windows):
+#         end_idx = start_idx + seq_length
+#         # Each window of shape (seq_length, num_features)
+#         x_window = X[start_idx:end_idx]
+#
+#         # Decide how to pick the label
+#         if label_position == "last":
+#             # We pick y at the final index of this window
+#             y_label = y[end_idx - 1]
+#         elif label_position == "first":
+#             y_label = y[start_idx]
+#         elif label_position == "aggregate":
+#             # Example: mean. Could do sum, majority, etc.
+#             y_window = y[start_idx:end_idx]
+#             y_label = y_window.mean(dim=0)  # if numeric
+#         else:
+#             raise ValueError(f"Unknown label_position: {label_position}")
+#
+#         X_list.append(x_window)
+#         y_list.append(y_label)
+#
+#     # Stack into final tensors
+#     X_slided = torch.stack(X_list)  # shape (num_windows, seq_length, num_features)
+#     y_slided = torch.stack(y_list)  # shape (num_windows, ...)
+#
+#     return X_slided, y_slided
+
+
+def create_sliding_windows_np(
+    X: np.ndarray, y: np.ndarray, seq_length: int, label_position: str = "last"
+):
+    """
+    Create overlapping sequences (sliding windows) from X and y.
+
+    Args:
+        X (np.ndarray): shape (num_samples, num_features)
+        y (np.ndarray): shape (num_samples,) or (num_samples, label_dim)
+        seq_length (int): window (sequence) length
+        label_position (str): how to pick a single label for each window:
+            - "last": label is y at the last timestep in the window
+            - "first": label is y at the first timestep in the window
+            - "aggregate": you can implement a custom aggregator (mean, majority, etc.)
+
+    Returns:
+        X_slided (np.ndarray): shape (num_windows, seq_length, num_features)
+        y_slided (np.ndarray): shape (num_windows,) or (num_windows, label_dim)
+    """
+    if X.ndim != 2:
+        raise ValueError(f"X must be 2D, but got shape {X.shape}.")
+    if y.shape[0] != X.shape[0]:
+        raise ValueError("X and y must have the same number of samples along axis 0.")
+
+    num_samples = X.shape[0]
+    num_features = X.shape[1]
+    num_windows = num_samples - seq_length + 1
+
+    if num_windows <= 0:
+        raise ValueError(
+            f"seq_length={seq_length} is too large for the dataset of size {num_samples}."
+        )
+
+    X_list = []
+    y_list = []
+
+    for start_idx in range(num_windows):
+        end_idx = start_idx + seq_length
+        # Each window from X is (seq_length, num_features)
+        x_window = X[start_idx:end_idx]
+
+        if label_position == "last":
+            # label is y at the final index of the window
+            y_label = y[end_idx - 1]
+        elif label_position == "first":
+            y_label = y[start_idx]
+        elif label_position == "aggregate":
+            # Example aggregator: take the mean across the window
+            y_window = y[start_idx:end_idx]
+            # y_window might be 1D or 2D depending on your data
+            # If it's 1D, y_label is a float
+            # If it's 2D, we can do mean along axis=0
+            if y_window.ndim == 1:
+                y_label = np.mean(y_window)
+            else:
+                y_label = np.mean(y_window, axis=0)
+        else:
+            raise ValueError(f"Unknown label_position: {label_position}")
+
+        X_list.append(x_window)
+        y_list.append(y_label)
+
+    # Stack lists into NumPy arrays
+    X_slided = np.stack(
+        X_list, axis=0
+    )  # shape: (num_windows, seq_length, num_features)
+    y_slided = np.stack(
+        y_list, axis=0
+    )  # shape: (num_windows, ...) -> could be 1D or 2D
+
+    return X_slided, y_slided
+
+
 # noinspection PyShadowingNames
 @add_default_repr
 class Experiment(ABC):
@@ -231,9 +360,77 @@ class Experiment(ABC):
         else:
             return fold_generator.split(indices_to_split)
 
-    def _get_train_val_data(self, X, Y, train_index, val_index):
+    def _get_train_val_data(
+        self, X, Y, train_index, val_index, model_type: str, model_configs: dict
+    ):
         X_train, X_val = X[train_index], X[val_index]
         y_train, y_val = Y[train_index], Y[val_index]
+
+        if model_type == "lstm":
+            model_config = model_configs.get("LSTMModel")
+            seq_length = model_config.get("sequence_length")
+            partitioning_method = model_config.get("partitioning")
+            leftover_method = model_config.get("leftover")
+
+            if partitioning_method == "sliding_window":
+                X_train_lstm, y_train_lstm = create_sliding_windows_np(
+                    X_train, y_train, seq_length=seq_length, label_position="last"
+                )
+
+                if y_train_lstm.ndim == 1:
+                    y_train_lstm = y_train_lstm.reshape(-1, 1)
+
+                X_val_lstm, y_val_lstm = create_sliding_windows_np(
+                    X_val, y_val, seq_length=seq_length, label_position="last"
+                )
+
+                if y_val_lstm.ndim == 1:
+                    y_val_lstm = y_val_lstm.reshape(-1, 1)
+
+            elif (partitioning_method == "non_overlapping") or (
+                partitioning_method == "strict"
+            ):
+                num_samples_train, num_features_train = X_train.shape
+                num_sequences_train = num_samples_train // seq_length
+
+                num_samples_val, num_features_val = X_val.shape
+                num_sequences_val = num_samples_val // seq_length
+
+                if leftover_method == "trim":
+                    # slice leftover if any
+                    X_train = X_train[: num_sequences_train * seq_length]
+                    y_train = y_train[: num_sequences_train * seq_length]
+                    X_val = X_val[: num_sequences_val * seq_length]
+                    y_val = y_val[: num_sequences_val * seq_length]
+
+                    X_train_lstm = X_train.reshape(
+                        num_sequences, seq_length, num_features
+                    )
+                    X_val_lstm = X_val.reshape(
+                        num_sequences_val, seq_length, num_features_val
+                    )
+
+                    # pick the last label in each sequence
+                    # y_train (num_samples, n_features) -> y_train_3d (num_sequences, seq_length, n_features)
+                    y_train_3d = y_train.reshape(num_sequences, seq_length, -1)
+                    # y_train_3d (num_sequences, seq_length, n_features) -> y_train_last (num_sequences, n_features)
+                    y_train_lstm = y_train_3d[:, -1, :]
+
+                    y_val_3d = y_val.reshape(num_sequences_val, seq_length, -1)
+                    y_val_lstm = y_val_3d[:, -1, :]
+
+                elif leftover_method == "pad":
+                    pass
+                else:
+                    raise ValueError(
+                        f"Method for leftover sequence values [{leftover_method}] not recognized."
+                    )
+            else:
+                raise ValueError(
+                    f"Method for partitioning [{partitioning_method}] not recognized."
+                )
+            return X_train_lstm, X_val_lstm, y_train_lstm, y_val_lstm
+
         return X_train, X_val, y_train, y_val
 
     def _initialize_model(
@@ -355,7 +552,15 @@ class Experiment(ABC):
             )
 
     def _model_fit(
-        self, model, X_train, y_train, X_val, y_val, run_info: dict, model_type: str
+        self,
+        model,
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        run_info: dict,
+        model_type: str,
+        model_configs: dict,
     ):
         if model_type == "logistic":
             multi_output_clf = model.model.named_steps["classifier"]
@@ -384,36 +589,57 @@ class Experiment(ABC):
         elif model_type == "xgb":
             model.fit(X_train, y_train)
         elif model_type == "lstm":
-            # input needs to be (batch_size, timesteps/seq_length, input_dim/feature_size)
-            X_train_lstm = X_train[:, np.newaxis, :]
-            X_val_lstm = X_val[:, np.newaxis, :]
-            model.fit(X_train_lstm, y_train, X_val_lstm, y_val, run_info)
+            # input needs to be X_train (num_sequences, seq_length, num_features)
+            # output needs to be y_train (num_sequences, num_features)
+            model.fit(X_train, y_train, X_val, y_val, run_info)
         else:
             raise ValueError(f"Model type {model_type} not recognized.")
 
-    def _model_predict(self, model, X_val, model_config: dict, model_type: str):
+    def _model_predict(
+        self,
+        model,
+        X_val: np.ndarray,
+        problem_type: str,
+        model_config: dict,
+        model_type: str,
+    ) -> np.ndarray:
+        """
+        Predict the model on the validation set.
+
+        Args:
+            model:
+            X_val:
+            model_config:
+            model_type:
+
+        Returns:
+            np.ndarray: For binary prediction, the shape is (num_validation_samples, num_features).
+        """
+
         model_predictions = model.predict(X_val)
-        if model_type == "mlp":
-            predictions = self._compute_mlp_predictions(
-                predictions=model_predictions, mlp_config=model_config
-            )
-        elif model_type == "logistic":
-            predictions = model_predictions
-        else:
-            raise ValueError(f"Model type {model_type} not recognized.")
+        predictions = self._process_predictions(
+            predictions=model_predictions,
+            problem_type=problem_type,
+        )
+        # if model_type == "mlp":
+        #     predictions = model_predictions
+        # elif model_type == "logistic":
+        #     predictions = model_predictions
+        # elif model_type == "lstm":
+        #     predictions = model_predictions
+        # else:
+        #     raise ValueError(f"Model type {model_type} not recognized.")
         return predictions
 
-    def _compute_mlp_predictions(self, predictions, mlp_config: dict):
-        if mlp_config["problem_type"] == "multi_class_classification":
+    def _process_predictions(self, predictions, problem_type: str):
+        if problem_type == "multi_class_classification":
             if predictions.ndim > 1:
                 predictions = np.argmax(predictions, axis=1)
-        elif mlp_config["problem_type"] == "binary_classification":
+        elif problem_type == "binary_classification":
             # numpy does not have sigmoid function like torch, so we use the equivalent scipy.special.expit function
             predictions = (expit(predictions) > 0.5).astype(int)
         else:
-            raise ValueError(
-                f"Problem type {mlp_config['problem_type']} not recognized."
-            )
+            raise ValueError(f"Problem type {problem_type} not recognized.")
         return predictions
 
     @abstractmethod

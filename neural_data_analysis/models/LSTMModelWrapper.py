@@ -4,6 +4,7 @@ import torchmetrics
 from torch.utils.data import TensorDataset, DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.callbacks import EarlyStopping
 from matplotlib import pyplot as plt
 import numpy as np
 from typing import Any
@@ -95,9 +96,10 @@ class LSTMBinaryClassifier(pl.LightningModule):
         return logits
 
     def training_step(self, batch, batch_idx):
-        x, y = (
-            batch  # x: [batch_size, seq_length, input_dims], y: [batch_size, output_dims]
-        )
+        (
+            x,
+            y,
+        ) = batch  # x: [batch_size, seq_length, input_dims], y: [batch_size, output_dims]
         y_hat = self.forward(x)
         # y_hat: [batch_size, output_dims]
         # Ensure y is of type float and on the same device as y_hat
@@ -212,7 +214,7 @@ class LSTMModelWrapper:
             accelerator="auto",
             devices=1,
             logger=csv_logger,
-            log_every_n_steps=10,
+            log_every_n_steps=1,
         )
         return trainer
 
