@@ -600,7 +600,10 @@ def average_across_iterations(
         _temp = df.iloc[i : i + n_iter].reset_index(drop=True)
         averaged_result_dict = {}
         for col in columns_to_keep:
-            averaged_result_dict[f"{col}"] = _temp[f"{col}"][0]
+            try:
+                averaged_result_dict[f"{col}"] = _temp[f"{col}"][0]
+            except:
+                raise ValueError(f"Column {col} not found in the dataframe.")
 
         for var in target_var:
             variable_avg = np.mean(_temp[var].to_numpy(), axis=0)
