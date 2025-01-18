@@ -368,8 +368,11 @@ class Experiment(ABC):
 
         if model_type == "lstm":
             model_config = model_configs.get("LSTMModel")
+            # how many continuous samples to input to the model
             seq_length = model_config.get("sequence_length")
+            # how to partition the data into sequences
             partitioning_method = model_config.get("partitioning")
+            # how to handle leftover samples that don't fit into a sequence
             leftover_method = model_config.get("leftover")
 
             if partitioning_method == "sliding_window":
@@ -420,7 +423,109 @@ class Experiment(ABC):
                     y_val_lstm = y_val_3d[:, -1, :]
 
                 elif leftover_method == "pad":
-                    pass
+                    # Calculate leftover samples
+                    leftover_train = num_samples_train % seq_length
+                    leftover_val = num_samples_val % seq_length
+
+                    # -----------------------
+                    # 1) Handle TRAIN padding
+                    # -----------------------
+                    if leftover_train > 0:
+                        pad_size_train = seq_length - leftover_train
+
+                        # zero pad the data
+                        X_train = np.pad(
+                            X_train,
+                            pad_width=((0, pad_size_train), (0, 0)),  # only pad rows
+                            mode="constant",
+                            constant_values=0.0,
+                        )
+
+                        if y_train.ndim == 1:
+                            y_train = y_train.reshape(
+                                -1, 1
+                            )  # shape (num_samples_train, 1)
+                        n_label_dims = y_train.shape[
+                            1
+                        ]  # second dim (or 1 if previously 1D)
+                        y_train = np.pad(
+                            y_train,
+                            pad_width=((0, pad_size_train), (0, 0)),  # only pad rows
+                            mode="constant",
+                            constant_values=0.0,
+                        )
+
+                        num_sequences_train_padded = (
+                            num_samples_train + pad_size_train
+                        ) // seq_length
+                    else:
+                        # no leftover -> no padding needed
+                        pad_size_train = 0
+                        num_sequences_train_padded = num_sequences_train
+
+                    # Now reshape X_train to (num_sequences_train_padded, seq_length, num_features_train)
+                    X_train_lstm = X_train.reshape(
+                        num_sequences_train_padded, seq_length, num_features_train
+                    )
+
+                    # Reshape y_train to 3D -> pick last label
+                    # shape after padding: (num_samples_train + pad_size_train, n_label_dims)
+                    y_train_3d = y_train.reshape(
+                        num_sequences_train_padded, seq_length, n_label_dims
+                    )
+                    y_train_lstm = y_train_3d[
+                        :, -1, :
+                    ]  # shape (num_sequences_train_padded, n_label_dims)
+
+                    # If you actually want (num_sequences, 1) for a binary classifier:
+                    y_train_lstm = y_train_lstm.reshape(-1, 1)
+                    # -----------------------
+                    # 2) Handle VAL padding
+                    # -----------------------
+                    if leftover_val > 0:
+                        pad_size_val = seq_length - leftover_val
+
+                        # Pad X_val
+                        X_val = np.pad(
+                            X_val,
+                            pad_width=((0, pad_size_val), (0, 0)),
+                            mode="constant",
+                            constant_values=0.0,
+                        )
+
+                        # Pad y_val
+                        if y_val.ndim == 1:
+                            y_val = y_val.reshape(-1, 1)
+                        n_label_dims_val = y_val.shape[1]
+                        y_val = np.pad(
+                            y_val,
+                            pad_width=((0, pad_size_val), (0, 0)),
+                            mode="constant",
+                            constant_values=0.0,
+                        )
+
+                        num_sequences_val_padded = (
+                            num_samples_val + pad_size_val
+                        ) // seq_length
+                    else:
+                        pad_size_val = 0
+                        num_sequences_val_padded = num_sequences_val
+
+                    # Reshape X_val
+                    X_val_lstm = X_val.reshape(
+                        num_sequences_val_padded, seq_length, num_features_val
+                    )
+
+                    # Reshape y_val -> pick last label
+                    y_val_3d = y_val.reshape(
+                        num_sequences_val_padded, seq_length, n_label_dims_val
+                    )
+                    y_val_lstm = y_val_3d[
+                        :, -1, :
+                    ]  # shape: (num_sequences_val_padded, n_label_dims_val)
+
+                    # If you want (num_sequences, 1):
+                    # y_val_lstm = y_val_lstm.reshape(-1, 1)
                 else:
                     raise ValueError(
                         f"Method for leftover sequence values [{leftover_method}] not recognized."
@@ -490,6 +595,7 @@ class Experiment(ABC):
                     pos_weights = np.sum(Y == 0, axis=0) / np.sum(Y, axis=0)
                 pos_weights = np.nan_to_num(pos_weights, nan=1, posinf=1, neginf=1)
                 pos_weights[pos_weights == 0] = 1
+
                 # assign these weights to the config
                 model_config["pos_weights"] = pos_weights
 
